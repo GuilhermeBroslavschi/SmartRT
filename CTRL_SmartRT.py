@@ -40,19 +40,21 @@ class Pesos:
 
 
 class SmartRT:
-    def __init__(self, circuit, dss_file, bus_medicao, regcontrolname, num_patamatares=17280, patamar_ini=1, patamar_fim=17280):
+    def __init__(self, circuit, dss_file, bus_medicao, regcontrolname, num_patamatares=17280,
+                 patamar_ini=1, patamar_fim=17280, usar_setup_dinamico=True):
         self.circuit = circuit
         self.dss_file = dss_file
         self.total_patamar = num_patamatares
         self.patamar_ini = patamar_ini
         self.paramar_fim = patamar_fim
-        self.bus_medicao = [item.lower() for item in bus_medicao]
+        self.bus_medicao = list(bus_medicao)
         self.num_bus_medicao = len(bus_medicao)
+        self.setup_dinamico = usar_setup_dinamico
 
         # pre-computes to speed up lookups
         self.bus_medicao_keys = [item.split('.') for item in self.bus_medicao]
-        self.bus_medicao_lookup = {f"{bus}.{node}" for bus, node in self.bus_medicao_keys}
-        self.bus_medicao_order_map = {f"{bus}.{node}": i for i, (bus, node) in enumerate(self.bus_medicao_keys)}
+        self.bus_medicao_lookup = {f"{bus.lower()}.{node}" for bus, node in self.bus_medicao_keys}
+        self.bus_medicao_order_map = {f"{bus.lower()}.{node}": i for i, (bus, node) in enumerate(self.bus_medicao_keys)}
 
         self.regControlName = regcontrolname
 
@@ -288,6 +290,8 @@ class SmartRT:
 
     def solve_circuit(self):
         total_number = self.total_patamar
+        patamar_ini = self.patamar_ini
+        patamar_fim = self.paramar_fim
 
         # start with a fresh output file for incremental writes
         if os.path.exists(self.path_result_bus):
@@ -301,8 +305,7 @@ class SmartRT:
             except OSError:
                 pass
 
-        set_pesos = None
-        for number in range(1, total_number + 1):
+        for number in range(patamar_ini, patamar_fim + 1):
 
             hour =  self.dss.solution.hour
             sec = self.dss.solution.seconds
@@ -362,14 +365,14 @@ class SmartRT:
                 else:
                     pos = nodes.index(int(bus_node))
                     vll_1 = round(convert2polar(self.dss.bus.vll[pos * 2], self.dss.bus.vll[(pos * 2) + 1])[0], 5)
-                    vll_1 = np.float32(vll_1)
+                    #vll_1 = np.float32(vll_1)
                     vll_pu_1 = round(convert2polar(self.dss.bus.pu_vll[pos * 2], self.dss.bus.pu_vll[(pos * 2) + 1])[0], 5)
-                    vll_pu_1 = np.float32(vll_pu_1)
+                    #vll_pu_1 = np.float32(vll_pu_1)
 
                 vln_1 = round(convert2polar(self.dss.bus.voltages[pos * 2], self.dss.bus.voltages[(pos * 2) + 1])[0], 5)
-                vln_1 = np.float32(vln_1)
+                #vln_1 = np.float32(vln_1)
                 vln_pu_1 = round(convert2polar(self.dss.bus.pu_voltages[pos * 2], self.dss.bus.pu_voltages[(pos * 2) + 1])[0], 5)
-                vln_pu_1 = np.float32(vln_pu_1)
+                #vln_pu_1 = np.float32(vln_pu_1)
 
                 current_voltage_rows.append({
                     "patamar": number,
@@ -387,6 +390,7 @@ class SmartRT:
             if number % self._flush_interval == 0:
                 self._flush_bus_buffer()
 
+
             # Determina e armazena pesos para ESTE patamar (histórico completo)
             set_pesos = self._set_pesos(current_voltage_rows)
             if set_pesos is not None:
@@ -396,26 +400,30 @@ class SmartRT:
                     self._flush_pesos_buffer()
                 print(set_pesos)
 
+            # controle para inserir ou remover o setup dinamico da simulação
+            if self.setup_dinamico:
 
-                # atualiza o setup dinamico a cada 3 patamares (comportamento original)
+                # atualiza o setup dinamico a cada 3 patamares
                 if (number-1) % 3 == 0:
-                    setup_dinamico_TSEA_atualizar_pesos(tensao_saida=set_pesos.reg_voltage, tenssoes_pontos=set_pesos.voltage_list,
+                    setup_dinamico_TSEA_atualizar_pesos(tensao_saida=set_pesos.reg_voltage,
+                                                        tenssoes_pontos=set_pesos.voltage_list,
                                                         tap_atual=set_pesos.tap)
 
-            # previsao do setup dinamico para o proximo patamar
-            if number % 48 == 0 and set_pesos is not None:
-                setpoint = set_pesos.v_reg_pu
-                result_set_point = setup_dinamico_TSEA_prever(tensao_saida=set_pesos.reg_voltage, entradas=set_pesos.voltage_list,
-                                           setpoint_atual=setpoint )
+                # previsao do setup dinamico para o proximo patamar
+                if number % 48 == 0 and set_pesos is not None:
+                    setpoint = set_pesos.v_reg_pu
+                    result_set_point = setup_dinamico_TSEA_prever(tensao_saida=set_pesos.reg_voltage,
+                                                                  entradas=set_pesos.voltage_list,
+                                                                  setpoint_atual=setpoint )
 
-                # valor do vreg do regulador de tensão
-                new_vreg = result_set_point * set_pesos.v_base / set_pesos.ptratio
+                    # valor do vreg do regulador de tensão
+                    new_vreg = result_set_point * set_pesos.v_base / set_pesos.ptratio
 
-                # set the same vreg for all regulatos
-                for reg_name in self.regControlName:
-                    self.dss.regcontrols.name = reg_name
-                    print(f'Regulador:{reg_name} setpoint:{result_set_point} New:{new_vreg} Old:{self.dss.regcontrols.forward_vreg}')
-                    self.dss.regcontrols.forward_vreg = new_vreg
+                    # set the same vreg for all regulators
+                    for reg_name in self.regControlName:
+                        self.dss.regcontrols.name = reg_name
+                        print(f'Regulador:{reg_name} setpoint:{result_set_point} New:{new_vreg} Old:{self.dss.regcontrols.forward_vreg}')
+                        self.dss.regcontrols.forward_vreg = new_vreg
 
         # flush any remaining buffered rows
         self._flush_bus_buffer()
@@ -452,7 +460,8 @@ if __name__ == '__main__':
                     num_patamatares=num_patamatares,
                     regcontrolname= regcontrol,
                     patamar_ini=patamar_ini,
-                    patamar_fim=patamar_fim)
+                    patamar_fim=patamar_fim,
+                    usar_setup_dinamico = True)
 
     ctr = simul.configure()
 

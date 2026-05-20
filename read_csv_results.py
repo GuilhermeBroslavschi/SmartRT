@@ -29,9 +29,6 @@ class Analisys:
         self.data_circuit = full_path.parts[1]
         self.pesos_data_path  = os.path.join(self.data_dir, self.pesos_data)
 
-    def plot_pesos(self, dados):
-        # graficos dos dados dos pesos.csv
-        pass
 
     def plot_voltage(self, buses, node):
         # graficos dos dados
@@ -43,11 +40,12 @@ class Analisys:
         dados = dados.pivot(index='patamar', columns='bus', values='vln_pu')
 
         #print(dados)
-        ax = dados.plot( y=buses, figsize=(10, 5))
-        plt.title(f"BUS voltage")
-        plt.ylabel(f"Voltage (p.u.) - {self.data_circuit}")
+        ax = dados.plot( y=buses, figsize=(7, 5))
+        plt.title(f"BUS voltage: - {self.data_circuit}")
+        plt.ylabel(f"Voltage (p.u.)")
         plt.xlabel(f"Time steps")
         plt.grid(axis='y')
+        ax.legend(loc='upper right', bbox_to_anchor=(1, 1), fontsize='small')
         #ax.xaxis.set_major_locator(ticker.MultipleLocator(690))
         plt_path = os.path.join(self.data_dir, "bus_medicoes_voltages.png")
         #plt.savefig(plt_path, dpi=300, bbox_inches='tight', transparent=False)
@@ -200,12 +198,15 @@ class Analisys:
 if __name__ == "__main__":
     # read_csv(r".\resultados\RMTQ1302\voltage_bus.csv")
 
-    results = Analisys(r".\resultados\RMTQ1302\sem_setup_dinamido\voltage_bus.csv", "pesos.csv")
+    results = Analisys(r".\resultados\RMTQ1302\novos_pontos_medicao\Com_setup_dinamico\voltage_bus.csv", "pesos.csv")
 
     results.plot_taps()
 
 
     medicoes = ['mt4339274745933283mt02', 'mt4291205645697419mt02', 'mt4294449845693038mt02',
+             'mt4283709245476469mt02', 'bt430501424549936mt02']
+
+    medicoes = ['bt4274688645149945mt02', 'mt434452545570824mt02', 'bt4361929845347146mt02',
              'mt4283709245476469mt02', 'bt430501424549936mt02']
     results.plot_voltage(buses=medicoes, node=1)
 

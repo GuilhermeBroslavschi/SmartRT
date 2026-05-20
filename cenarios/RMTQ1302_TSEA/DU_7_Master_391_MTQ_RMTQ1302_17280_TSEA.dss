@@ -26,9 +26,21 @@ New Monitor.SMT_365594259_B_volt_curr element=Line.SMT_365594259_B terminal=1 mo
 New Monitor.SMT_365594259_B_powers element=Line.SMT_365594259_B terminal=1 mode=1 ppolar=no
 New Monitor.SMT_365445911_B_volt_curr element=Line.SMT_365445911_B terminal=1 mode=0 ppolar=no
 New Monitor.SMT_365445911_B_powers element=Line.SMT_365445911_B terminal=1 mode=1 ppolar=no
+
 New Monitor.REG_295RT000020129A_taps element=Transformer.REG_295RT000020129A terminal=2 mode=2 
 New Monitor.REG_295RT000020129B_taps element=Transformer.REG_295RT000020129B terminal=2 mode=2 
 New Monitor.REG_295RT000020129C_taps element=Transformer.REG_295RT000020129C terminal=2 mode=2 
+
+New Monitor.REG_295RT000020129C_volt_curr element=Transformer.REG_295RT000020129C terminal=2 terminal=1 mode=0 ppolar=no
+
+
+New Monitor.SMT_31156967_F_volt_curr element=Line.SMT_31156967_F terminal=1 mode=0 ppolar=no
+New Monitor.SMT_139821679_B_volt_curr element=Line.SMT_139821679_B terminal=1 mode=0 ppolar=no
+New Monitor.SMT_140167660_F_volt_curr element=Line.SMT_140167660_F terminal=1 mode=0 ppolar=no
+New Monitor.SMT_140114440_F_volt_curr element=Line.SMT_140114440_F terminal=1 mode=0 ppolar=no
+New Monitor.RBT_1000945088_volt_curr element=Line.RBT_1000945088 terminal=1 mode=0 ppolar=no
+
+
 
 edit Regcontrol.CREG_295RT000020129A tapwinding=2 vreg=123 revvreg=123 band=3.69 ptratio=63.496 delay=90 tapdelay=5 revthreshold=16 eventlog=yes
 edit Regcontrol.CREG_295RT000020129B tapwinding=2 vreg=123 revvreg=123 band=3.69 ptratio=63.496 delay=90 tapdelay=5 revthreshold=16 eventlog=yes

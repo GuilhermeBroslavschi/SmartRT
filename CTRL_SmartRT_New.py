@@ -1,3 +1,4 @@
+import math
 
 from regcontrol.regcontrol_TSEA import (LadoForteLadoFracoControl)
 from setup_dinamico.setup_dinamico_TSEA import (setup_dinamico_TSEA_calcular)
@@ -104,7 +105,7 @@ class SmartRT:
         #self._localiza_transformer()
 
         # Check kv_base
-        #self.__check_kv_base()
+        self.__check_kv_base()
 
     def regcontrol_tsea_init(self):
         dss = self.dss
@@ -341,10 +342,26 @@ class SmartRT:
 
         volt_bus_reg = []
         tap_reg = []
-        fvreg = 0
+        fvreg = 0           # igual para todas as fases
         pt_ratio_reg = 0.0
         v_base = 0
+        for index, reg_name in enumerate(self.regControlName):
+            self.dss.regcontrols.name = reg_name
+            if self.dss.regcontrols.name == reg_name.lower():
+                #tap_reg.append(self.dss.regcontrols.tap_number)
+                tap_reg.append(self.reg_manual[index].reg_manual.tap_position)
+                fvreg = self.reg_manual[index].reg_manual.vreg
+                pt_ratio_reg = self.reg_manual[index].ptratio
+                self.dss.transformers.name = self.reg_manual[index].transformer
+                bus_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[0]
+                node_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[1]
+                v_base = self.dss.bus.kv_base * 1000
 
+                # tensão no regulador selecionado
+                volt_bus_reg.append(df_patamar_voltage.loc[(df_patamar_voltage['bus'] == bus_reg_trafo.lower()) &
+                                                           (df_patamar_voltage['nodes'] == node_reg_trafo)])
+
+        """
         for reg_name in self.regControlName:
             self.dss.regcontrols.name = reg_name
             if self.dss.regcontrols.name == reg_name.lower():
@@ -358,15 +375,14 @@ class SmartRT:
                 node_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[1]
                 self.dss.circuit.set_active_bus(bus_reg_trafo)
                 v_base = self.dss.bus.kv_base * 1000
-
+        
                 # tensão no regulador selecionado
                 volt_bus_reg.append(df_patamar_voltage.loc[(df_patamar_voltage['bus'] == bus_reg_trafo.lower()) &
                                                            (df_patamar_voltage['nodes'] == node_reg_trafo)])
-
             else:
                 print(f'Regulador nao encontrado!')
                 return None
-
+        """
 
         # garantir a ordem das barras igual a lista de entrada das barras de medicao
         df_bus_medicao_faseA.loc[:, 'bus_sort'] = df_bus_medicao_faseA['_bus_node'].map(
@@ -435,6 +451,8 @@ class SmartRT:
 
     def solve_circuit(self):
         total_number = self.total_patamar
+        ini_tentativa = 1               # valor inicial para o loadmult
+        max_tentativa = 5               # numero de tentativas apos não covergência
         patamar_ini = self.patamar_ini
         patamar_fim = self.paramar_fim
 
@@ -461,39 +479,26 @@ class SmartRT:
             if status == 0:
                 print(f'OpenDSS: File {self.dss_file} not solved to time {number}!')
                 # tentar novamente com loadmult
-                self.dss.text(f"set loadmult=1.01")
-                self.dss.text(f"set time = ({hour}, {sec})")
-                print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
-                self.dss.solution.solve()
-                self.dss.text(f"set loadmult=1.0")
-                status = self.dss.solution.converged
-                if status == 0:
-                    print(f'OpenDSS: File {self.dss_file} alter loadMult 1.01 and not solved to time {number}!')
-
-                    # tentar novamete aumentando um pouco mais a carga.
-                    self.dss.text(f"set loadmult=1.02")
+                for tentativa in range(ini_tentativa, max_tentativa+ini_tentativa):
+                    new_load_mult = 1 + tentativa/100
+                    self.dss.text(f"set loadmult={new_load_mult}")
                     self.dss.text(f"set time = ({hour}, {sec})")
+                    print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
+                    self.__check_kv_base()
                     self.dss.solution.solve()
                     self.dss.text(f"set loadmult=1.0")
+
                     status = self.dss.solution.converged
                     if status == 0:
+                        print(f'OpenDSS: File {self.dss_file} alter loadMult {new_load_mult} and not solved to time {number}!')
                         logging.info(
-                            f'OpenDSS: File {self.dss_file} NOT solved! - loadmult=1.02'
+                            f'OpenDSS: File {self.dss_file} NOT solved! - loadmult={new_load_mult} '
                             f'Set number: {number}, hour: {hour}, seconds: {sec}, event: {self.dss.solution.event_log}')
-                        continue
                     else:
-                        logging.info(f'OpenDSS: File {self.dss_file} SOLVED alter loadMult 1.02  '
+                        print(f'OpenDSS: File {self.dss_file} alter loadMult {new_load_mult} and solved to time {number}!')
+                        logging.info(f'OpenDSS: File {self.dss_file} SOLVED alter loadMult {new_load_mult} '
                             f'Set number: {number}, hour: {hour}, seconds: {sec}, event: {self.dss.solution.event_log}')
-                        print(f'OpenDSS: File {self.dss_file} alter loadMult 1.02 and solved to time {number}!')
-                else:
-                    logging.info(
-                        f'OpenDSS: File {self.dss_file} SOLVED alter loadMult 1.01! '
-                        f'Set number: {number}, hour: {hour}, seconds: {sec}, {self.dss.solution.event_log}')
-
-                    print(f'OpenDSS: File {self.dss_file} alter loadMult 1.01 and solved to time {number}!')
-
-
-
+                        break
 
 
             # controle para inserir ou remover o setup dinamico da simulação
@@ -504,6 +509,7 @@ class SmartRT:
                 for index, value in enumerate(self.regControlName):
                     tap_atual[index], lado_forte_fonte[index] = self.reg_manual[index].ladoForte_ladoFraco_executar(
                         self.set_point)
+
 
             # Faz a leitura dos dados das tensões das barras
             current_voltage_rows = []
@@ -534,15 +540,19 @@ class SmartRT:
                     convert2polar(self.dss.bus.pu_voltages[pos * 2], self.dss.bus.pu_voltages[(pos * 2) + 1])[0], 5)
                 # vln_pu_1 = np.float32(vln_pu_1)
 
+                # para transformadores fase-fase não existe tensão de fase, usar o valor da tensão de linha em pu
+                if math.isnan(vln_pu_1) or vln_pu_1 == 0:
+                    vln_pu_1 = vll_pu_1
+
                 current_voltage_rows.append({
                     "patamar": number,
                     "bus": f"{bus_name.split('.')[0]}".lower(),
                     "nodes": bus_node,
-                    "vll": vll_1,
+                    #"vll": vll_1,
                     "vln": vln_1,
-                    "vll_pu": vll_pu_1,
+                    #"vll_pu": vll_pu_1,
                     "vln_pu": vln_pu_1,
-                    "kv_base": int(self.dss.bus.kv_base * 1000)
+                    "kv_base": int(self.dss.bus.kv_base * 1000)         # necessario para verificar o nivel de tensão para analise de barras
                 })
 
             # append to buffer and flush in blocks
@@ -598,9 +608,14 @@ class SmartRT:
 
 
 if __name__ == '__main__':
-    circuito = 'RMTQ1302'
     application_path = os.path.dirname(os.path.abspath(__file__))
+
+    circuito = 'RMTQ1302'
     dss_file = os.path.join(application_path, fr'cenarios\{circuito}_TSEA\DU_7_Master_391_MTQ_RMTQ1302_17280_TSEA.dss')
+
+    #circuito = 'RBOI1302'
+    #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_TSEA\DU_7_Master_391_BOI_RBOI1302_17280_TSEA.dss')
+
 
     # Os pontos de medição devem ser da mesma fase.
     pontos_de_medicao = ['mt4339274745933283mt02.1', 'mt4291205645697419mt02.1', 'mt4294449845693038mt02.1',

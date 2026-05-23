@@ -1,0 +1,152 @@
+# Arquivo de configurações para o script CTRL_SmartRT.py
+data_SmartRT:
+  feeder_path: 'C:/SmartRT/feeders/'
+  feeder:
+    - 'RAVP1303_BASE'
+#    - 'RAVP1303_C-AGR_G-AGR'
+#    - 'RAVP1303_C-AGR_G-MOD'
+#    - 'RAVP1303_C-MOD_G-AGR'
+#    - 'RAVP1303_C-MOD_G-MOD'
+    - 'RAVP1305_BASE'
+#    - 'RAVP1305_C-AGR_G-AGR'
+#    - 'RAVP1305_C-AGR_G-MOD'
+#    - 'RAVP1305_C-MOD_G-AGR'
+#    - 'RAVP1305_C-MOD_G-MOD'
+    - 'RBOI1302_BASE'
+#    - 'RBOI1302_C-AGR'
+#    - 'RBOI1302_C-MOD'
+    - 'RBOI1302_G-AGR'
+    - 'RBOI1302_G-MOD'
+    - 'RBRR1301_BASE'
+#    - 'RBRR1301_C-AGR'
+#    - 'RBRR1301_C-MOD'
+    - 'RBRR1301_G-AGR'
+    - 'RBRR1301_G-MOD'
+    - 'RMTQ1302_BASE'
+#    - 'RMTQ1302_C-AGR_G-AGR'
+#    - 'RMTQ1302_C-AGR_G-MOD'
+#    - 'RMTQ1302_C-MOD_G-AGR'
+#    - 'RMTQ1302_C-MOD_G-MOD'
+  points:
+    RAVP1303:
+      Node1:
+        - 'MT3941776644488397AV03.1'
+        - 'MT3935664143921586AV03.1'
+
+        - 'BT403363844325595AV03.1'
+        - 'BT3911326944790594AV03.1'
+      Node2:
+        - 'MT3941776644488397AV03.2'
+
+
+        - 'BT403363844325595AV03.2'
+        - 'BT3911326944790594AV03.2'
+      Node3:
+        - 'MT3941776644488397AV03.3'
+
+        - 'MT3915386344153375AV03.3'
+
+
+      Reguladores:
+        - 'CREG_175RT005041559C'
+        - 'CREG_175RT005041559B'
+        - 'CREG_175RT005041559A'
+    RAVP1305:
+      Node1:
+        - 'MT4067319347250258AV05.1'
+        - 'MT4027474546608834AV05.1'
+        - 'MT4069745646467478AV05.1'
+        - 'BT40134946634284AV05.1'
+        - 'BT3984458146454629AV05.1'
+      Node2:
+        - 'MT4067319347250258AV05.2'
+        - 'MT4027474546608834AV05.2'
+
+        - 'BT40134946634284AV05.2'
+        - 'BT3984458146454629AV05.2'
+      Node3:
+        - 'MT4067319347250258AV05.3'
+        - 'MT4027474546608834AV05.3'
+
+        - 'BT40134946634284AV05.3'
+
+      Reguladores:
+        - 'CREG_175RT005777189B'
+        - 'CREG_175RT005777189C'
+        - 'CREG_175RT005777189A'
+    RBOI1302:
+      Node1:
+        - 'MT4413469336888117BO02.1'
+        - 'MT4433062136860652BO02.1'
+        - 'BT442046136909871BO02.1'
+
+        - 'BT4414649436930692BO02.1'
+      Node2:
+        - 'MT4413469336888117BO02.2'
+        - 'MT4433062136860652BO02.2'
+        - 'BT442046136909871BO02.2'
+
+        - 'BT4414649436930692BO02.2'
+      Node3:
+        - 'MT4413469336888117BO02.3'
+        - 'MT4433062136860652BO02.3'
+        - 'BT442046136909871BO02.3'
+        - 'BT4412232636952996BO02.1'
+        - 'BT4414649436930692BO02.3'
+      Reguladores:
+        - 'CREG_185RT005019989A'
+        - 'CREG_185RT005019989C'
+        - 'CREG_185RT005019989B'
+    RBRR1301:
+      Node1:
+        - 'MT4517921743612254BR01.1'
+        - 'MT453467854408563BR01.1'
+        - 'BT4505106843464316BR01.1'
+        - 'BT4532811243785276BR01.1'
+        - 'BT4549233643424908BR01.1'
+      Node2:
+        - 'MT4517921743612254BR01.2'
+        - 'MT453467854408563BR01.2'
+        - 'BT4505106843464316BR01.2'
+        - 'BT4532811243785276BR01.2'
+        - 'BT4549233643424908BR01.2'
+      Node3:
+        - 'MT4517921743612254BR01.3'
+        - 'MT453467854408563BR01.3'
+
+
+        - 'BT4549233643424908BR01.3'
+      Reguladores:
+        - 'CREG_295RT005266619B'
+        - 'CREG_295RT005266619A'
+        - 'CREG_295RT005266619C'
+    RMTQ1302:
+      Node1:
+        - 'MT4288596845701482MT02.1'
+        - 'MT4294641145275648MT02.1'
+        - 'BT433404945857112MT02.1'
+
+        - 'BT4274782645127345MT02.1'
+      Node2:
+        - 'MT4288596845701482MT02.2'
+        - 'MT4294641145275648MT02.2'
+        - 'BT433404945857112MT02.2'
+
+        - 'BT4274782645127345MT02.2'
+      Node3:
+        - 'MT4288596845701482MT02.3'
+        - 'MT4294641145275648MT02.3'
+        - 'BT433404945857112MT02.3'
+        - 'BT4307607845467421MT02.1'
+        - 'BT4274782645127345MT02.3'
+      Reguladores:
+        - 'creg_295rt000020129c'
+        - 'creg_295RT000020129a'
+        - 'CREG_295RT000020129b'
+  month: 7 #[1, 7]
+  type_day: 'DU' #['DU', 'DO']
+  loadmult_ini: 1 # 1 para BASE e casos modificados apenas de geração "G-MOD e G-AGR"; 1.04 para Carga moderada "C-MOD"; 1.1 para Carga agressiva "C-AGR"; Comentar os feeders que não forem aplicáveis.
+  num_patamares: 144
+  patamar_ini: 0
+  patamar_fim: 144
+  usar_setup_dinamico: False

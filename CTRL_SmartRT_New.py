@@ -66,7 +66,7 @@ class SmartRT:
         self.dss_file = dss_file
         self.total_patamar = num_patamatares
         self.patamar_ini = patamar_ini
-        self.paramar_fim = patamar_fim
+        self.patamar_fim = patamar_fim
         self.bus_medicao_faseA = list(bus_medicao_faseA)
         self.bus_medicao_faseB = list(bus_medicao_faseB)
         self.bus_medicao_faseC = list(bus_medicao_faseC)
@@ -136,7 +136,7 @@ class SmartRT:
     def _localiza_transformer(self):
         dss = self.dss
         dss.transformers.first()
-        pontos_med_keys = [item.split('.')[0] for item in self.bus_medicao]
+        pontos_med_keys = [item.split('.')[0] for item in self.bus_medicao_faseA]
         pontos_med = [bus.lower() for bus in pontos_med_keys]
 
         for _ in range(dss.transformers.count):
@@ -348,41 +348,32 @@ class SmartRT:
         for index, reg_name in enumerate(self.regControlName):
             self.dss.regcontrols.name = reg_name
             if self.dss.regcontrols.name == reg_name.lower():
-                #tap_reg.append(self.dss.regcontrols.tap_number)
-                tap_reg.append(self.reg_manual[index].reg_manual.tap_position)
-                fvreg = self.reg_manual[index].reg_manual.vreg
-                pt_ratio_reg = self.reg_manual[index].ptratio
-                self.dss.transformers.name = self.reg_manual[index].transformer
-                bus_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[0]
-                node_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[1]
-                v_base = self.dss.bus.kv_base * 1000
+                if self.setup_dinamico:
+                    #tap_reg.append(self.dss.regcontrols.tap_number)
+                    tap_reg.append(self.reg_manual[index].reg_manual.tap_position)
+                    # fvreg = self.dss.regcontrols.fv_reg
+                    fvreg = self.reg_manual[index].reg_manual.vreg
+                    pt_ratio_reg = self.reg_manual[index].ptratio
+                    self.dss.transformers.name = self.reg_manual[index].transformer
+                    bus_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[0]
+                    node_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[1]
+                    v_base = self.dss.bus.kv_base * 1000
+                else:
+                    self.dss.regcontrols.name = reg_name
+                    tap_reg.append(self.dss.regcontrols.tap_number)
+                    winding = self.dss.regcontrols.winding
+                    rreg = self.dss.regcontrols.reverse_vreg
+                    fvreg = self.dss.regcontrols.forward_vreg
+                    pt_ratio_reg = self.dss.regcontrols.pt_ratio
+                    self.dss.transformers.name = self.dss.regcontrols.transformer
+                    bus_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[0]
+                    node_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[1]
+                    self.dss.circuit.set_active_bus(bus_reg_trafo)
+                    v_base = self.dss.bus.kv_base * 1000
 
                 # tensão no regulador selecionado
                 volt_bus_reg.append(df_patamar_voltage.loc[(df_patamar_voltage['bus'] == bus_reg_trafo.lower()) &
                                                            (df_patamar_voltage['nodes'] == node_reg_trafo)])
-
-        """
-        for reg_name in self.regControlName:
-            self.dss.regcontrols.name = reg_name
-            if self.dss.regcontrols.name == reg_name.lower():
-                tap_reg.append(self.dss.regcontrols.tap_number)
-                winding = self.dss.regcontrols.winding
-                rreg = self.dss.regcontrols.reverse_vreg
-                fvreg = self.dss.regcontrols.forward_vreg
-                pt_ratio_reg = self.dss.regcontrols.pt_ratio
-                self.dss.transformers.name = self.dss.regcontrols.transformer
-                bus_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[0]
-                node_reg_trafo = self.dss.cktelement.bus_names[1].split('.')[1]
-                self.dss.circuit.set_active_bus(bus_reg_trafo)
-                v_base = self.dss.bus.kv_base * 1000
-        
-                # tensão no regulador selecionado
-                volt_bus_reg.append(df_patamar_voltage.loc[(df_patamar_voltage['bus'] == bus_reg_trafo.lower()) &
-                                                           (df_patamar_voltage['nodes'] == node_reg_trafo)])
-            else:
-                print(f'Regulador nao encontrado!')
-                return None
-        """
 
         # garantir a ordem das barras igual a lista de entrada das barras de medicao
         df_bus_medicao_faseA.loc[:, 'bus_sort'] = df_bus_medicao_faseA['_bus_node'].map(
@@ -454,7 +445,7 @@ class SmartRT:
         ini_tentativa = 1               # valor inicial para o loadmult
         max_tentativa = 5               # numero de tentativas apos não covergência
         patamar_ini = self.patamar_ini
-        patamar_fim = self.paramar_fim
+        patamar_fim = self.patamar_fim
 
         # start with a fresh output file for incremental writes
         if os.path.exists(self.path_result_bus):
@@ -473,6 +464,11 @@ class SmartRT:
             hour =  self.dss.solution.hour
             sec = self.dss.solution.seconds
             print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
+            if hour in (6, 12, 20) and sec == 0:
+                self.dss.text("Export Profile Phases=All")
+                path_dss = os.path.dirname(self.dss_file)
+                file_exp = os.path.join(path_dss, fr'{self.circuit}_EXP_Profile.CSV')
+                os.rename(file_exp, f'{self.circuit}_EXP_Profile_time_{hour}.CSV')
 
             self.dss.solution.solve()
             status = self.dss.solution.converged
@@ -484,7 +480,7 @@ class SmartRT:
                     self.dss.text(f"set loadmult={new_load_mult}")
                     self.dss.text(f"set time = ({hour}, {sec})")
                     print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
-                    self.__check_kv_base()
+
                     self.dss.solution.solve()
                     self.dss.text(f"set loadmult=1.0")
 
@@ -498,6 +494,7 @@ class SmartRT:
                         print(f'OpenDSS: File {self.dss_file} alter loadMult {new_load_mult} and solved to time {number}!')
                         logging.info(f'OpenDSS: File {self.dss_file} SOLVED alter loadMult {new_load_mult} '
                             f'Set number: {number}, hour: {hour}, seconds: {sec}, event: {self.dss.solution.event_log}')
+                        self.__check_kv_base()
                         break
 
 
@@ -616,24 +613,32 @@ if __name__ == '__main__':
     #circuito = 'RBOI1302'
     #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_TSEA\DU_7_Master_391_BOI_RBOI1302_17280_TSEA.dss')
 
+    circuito = 'RBRR1301'
+    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_BRR_RBRR1301_17280.dss')
+
+    circuito = 'RAVP1305'
+    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1305_17280.dss')
+
+    circuito = 'RAVP1303'
+    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1303_17280.dss')
 
     # Os pontos de medição devem ser da mesma fase.
-    pontos_de_medicao = ['mt4339274745933283mt02.1', 'mt4291205645697419mt02.1', 'mt4294449845693038mt02.1',
-                         'mt4283709245476469mt02.1', 'BT430501424549936MT02.1' ]
+    #pontos_de_medicao = ['mt4339274745933283mt02.1', 'mt4291205645697419mt02.1', 'mt4294449845693038mt02.1',
+    #                     'mt4283709245476469mt02.1', 'BT430501424549936MT02.1' ]
 
                          # 'bt4295442945257362mt02.1'] #    , 'mt4279615845183301mt02.1']
 
-    regcontrol = 'creg_295rt000020129c' # Atencao: node 1!
+    #regcontrol = 'creg_295rt000020129c' # Atencao: node 1!
     # O primeiro regulador da lista deve ter a mesma fase das barras de medição selecionadas.
-    regcontrol = ['creg_295rt000020129c', 'creg_295rt000020129a', 'creg_295rt000020129b']
+    #regcontrol = ['creg_295rt000020129c', 'creg_295rt000020129a', 'creg_295rt000020129b']
 
-    pontos_de_medicao = ['BT4274688645149945MT02.1', 'MT434452545570824MT02.1', 'BT4361929845347146MT02.1',
-                         'mt4283709245476469mt02.1', 'BT430501424549936MT02.1']
+    #pontos_de_medicao = ['BT4274688645149945MT02.1', 'MT434452545570824MT02.1', 'BT4361929845347146MT02.1',
+    #                     'mt4283709245476469mt02.1', 'BT430501424549936MT02.1']
 
 
 
     num_patamatares = 17280             # numero total de patamares da simulação
-    patamar_ini = 0                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
+    patamar_ini = 1                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
     patamar_fim = 17280             # 5000   # converter a hora de fim da simulação em patamares
 
 
@@ -654,7 +659,7 @@ if __name__ == '__main__':
                     regcontrolname= reguladores,
                     patamar_ini=patamar_ini,
                     patamar_fim=patamar_fim,
-                    usar_setup_dinamico = True)
+                    usar_setup_dinamico = False)
 
     simul.regcontrol_tsea_init()
     simul.solve_circuit()

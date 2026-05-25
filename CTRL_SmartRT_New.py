@@ -460,15 +460,15 @@ class SmartRT:
                 pass
 
         for number in range(patamar_ini, patamar_fim + 1):
-
             hour =  self.dss.solution.hour
             sec = self.dss.solution.seconds
+
             print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
             if hour in (6, 12, 20) and sec == 0:
                 self.dss.text("Export Profile Phases=All")
                 path_dss = os.path.dirname(self.dss_file)
                 file_exp = os.path.join(path_dss, fr'{self.circuit}_EXP_Profile.CSV')
-                os.rename(file_exp, f'{self.circuit}_EXP_Profile_time_{hour}.CSV')
+                os.replace(file_exp, f'{self.circuit}_EXP_Profile_time_{hour}.CSV')
 
             self.dss.solution.solve()
             status = self.dss.solution.converged
@@ -540,6 +540,7 @@ class SmartRT:
                 # para transformadores fase-fase não existe tensão de fase, usar o valor da tensão de linha em pu
                 if math.isnan(vln_pu_1) or vln_pu_1 == 0:
                     vln_pu_1 = vll_pu_1
+                    vln = vll_1 / 2
 
                 current_voltage_rows.append({
                     "patamar": number,
@@ -613,14 +614,14 @@ if __name__ == '__main__':
     #circuito = 'RBOI1302'
     #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_TSEA\DU_7_Master_391_BOI_RBOI1302_17280_TSEA.dss')
 
-    circuito = 'RBRR1301'
-    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_BRR_RBRR1301_17280.dss')
+    #circuito = 'RBRR1301'
+    #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_BRR_RBRR1301_17280.dss')
 
-    circuito = 'RAVP1305'
-    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1305_17280.dss')
+    #circuito = 'RAVP1305'
+    #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1305_17280.dss')
 
-    circuito = 'RAVP1303'
-    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1303_17280.dss')
+    #circuito = 'RAVP1303'
+    #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1303_17280.dss')
 
     # Os pontos de medição devem ser da mesma fase.
     #pontos_de_medicao = ['mt4339274745933283mt02.1', 'mt4291205645697419mt02.1', 'mt4294449845693038mt02.1',
@@ -659,7 +660,7 @@ if __name__ == '__main__':
                     regcontrolname= reguladores,
                     patamar_ini=patamar_ini,
                     patamar_fim=patamar_fim,
-                    usar_setup_dinamico = False)
+                    usar_setup_dinamico = True)
 
     simul.regcontrol_tsea_init()
     simul.solve_circuit()

@@ -73,8 +73,9 @@ class SmartRT:
 
         self.setup_dinamico = usar_setup_dinamico
         self.regControlName = regcontrolname
-        self.reg_manual = []                        # Inicia regcontrol_TSEA
-        self.set_point = None
+        self.reg_manual = []            # Lista de objetos - Inicia regcontrol_TSEA
+        self.set_point = None           # valor a ser atualizado pelo setup dimanico
+        self.set_point_ideal  = None    # valor definido nos parametros do regulador para ser seguido quando não ha vilações
 
         # pre-computes to speed up lookups
         self.bus_medicao_keys_faseA = [item.split('.') for item in self.bus_medicao_faseA]
@@ -125,7 +126,7 @@ class SmartRT:
             tap_delay = dss.regcontrols.tap_delay
             v_base = round(vn / pt_ratio, 2)
             self.set_point =  (vreg * pt_ratio) / vn    # valor inicial do vreg_pu para o LadoForteLadoFraco
-
+            self.set_point_ideal = (vreg * pt_ratio) / vn
             # Desabilita os RegControl do Master
             dss.text(f"Edit RegControl.{reg_name} enabled=no")
 
@@ -595,7 +596,9 @@ class SmartRT:
                                     tensoes_pontos_faseC=tensoes_faseC,
                                     tap_atual_faseC=tap_atual[2],
                                     lado_forte_fonte_faseC=lado_forte_fonte[2],
-                                    setpoint_atual_faseC=setpoint_atual)
+                                    setpoint_atual_faseC=setpoint_atual,
+                                    setpoint_ideal=self.set_point_ideal
+                )
 
 
 
@@ -642,7 +645,7 @@ if __name__ == '__main__':
 
 
     num_patamatares = 17280             # numero total de patamares da simulação
-    patamar_ini = 1                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
+    patamar_ini = 0                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
     patamar_fim = 17280             # 5000   # converter a hora de fim da simulação em patamares
 
 
@@ -663,7 +666,7 @@ if __name__ == '__main__':
                     regcontrolname= reguladores,
                     patamar_ini=patamar_ini,
                     patamar_fim=patamar_fim,
-                    usar_setup_dinamico = False)
+                    usar_setup_dinamico = True)
 
     #simul.regcontrol_tsea_init()
     simul.solve_circuit()

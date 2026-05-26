@@ -63,17 +63,32 @@ class Analisys:
         fig, axes = plt.subplots(nrows=3, ncols=1, sharey=True , figsize=(10, 9))
 
         dados_plot[0].plot(ax=axes[0], title=f"Voltage Bus - {fases[0]}").legend(fontsize=8)
-        axes[0].axhline(y=sup_limit, color='red', linestyle='--', label='Target', lw=lw)
-        axes[0].axhline(y=inf_limit, color='red', linestyle='--', label='Target', lw=lw)
-        axes[0].axhline(y=inf_limit_bt, color='black', linestyle='--', label='Target', lw=lw)
+        axes[0].axhline(y=1.05, color='r', linestyle='--', alpha=0.8, label='mt_over_crit')
+        axes[0].axhline(y=0.93, color='r', linestyle='--', alpha=0.8, label='mt_under_prec')
+        axes[0].axhline(y=0.90, color='r', linestyle='--', alpha=0.8, label='mt_under_crit')
+        axes[0].axhline(y=1.06, color='g', linestyle='--', alpha=0.8, label='bt_over_crit')
+        axes[0].axhline(y=1.047, color='g', linestyle='--', alpha=0.8, label='bt_over_prec')
+        axes[0].axhline(y=0.866, color='g', linestyle='--', alpha=0.8, label='bt_under_prec')  # 110/127
+        axes[0].axhline(y=0.92, color='g', linestyle='--', alpha=0.8, label='bt_under_crit')
+
         dados_plot[1].plot(ax=axes[1], title=f"Voltage Bus - {fases[1]}").legend(fontsize=8)
-        axes[1].axhline(y=sup_limit, color='red', linestyle='--', label='Target', lw=lw)
-        axes[1].axhline(y=inf_limit, color='red', linestyle='--', label='Target', lw=lw)
-        axes[1].axhline(y=inf_limit_bt, color='black', linestyle='--', label='Target', lw=lw)
-        dados_plot[2].plot(ax=axes[2], title=f"Voltage Bus - {fases[1]}").legend(fontsize=8)
-        axes[2].axhline(y=sup_limit, color='red', linestyle='--', label='Target', lw=lw)
-        axes[2].axhline(y=inf_limit, color='red', linestyle='--', label='Target', lw=lw)
-        axes[2].axhline(y=inf_limit_bt, color='black', linestyle='--', label='Target', lw=lw)
+        axes[1].axhline(y=1.05, color='r', linestyle='--', alpha=0.8, label='mt_over_crit')
+        axes[1].axhline(y=0.93, color='r', linestyle='--', alpha=0.8, label='mt_under_prec')
+        axes[1].axhline(y=0.90, color='r', linestyle='--', alpha=0.8, label='mt_under_crit')
+        axes[1].axhline(y=1.06, color='g', linestyle='--', alpha=0.8, label='bt_over_crit')
+        axes[1].axhline(y=1.047, color='g', linestyle='--', alpha=0.8, label='bt_over_prec')
+        axes[1].axhline(y=0.866, color='g', linestyle='--', alpha=0.8, label='bt_under_prec')
+        axes[1].axhline(y=0.92, color='g', linestyle='--', alpha=0.8, label='bt_under_crit')
+
+        dados_plot[2].plot(ax=axes[2], title=f"Voltage Bus - {fases[2]}").legend(fontsize=8)
+        axes[2].axhline(y=1.05, color='r', linestyle='--', alpha=0.8, label='mt_over_crit')
+        axes[2].axhline(y=0.93, color='r', linestyle='--', alpha=0.8, label='mt_under_prec')
+        axes[2].axhline(y=0.90, color='r', linestyle='--', alpha=0.8, label='mt_under_crit')
+        axes[2].axhline(y=1.06, color='g', linestyle='--', alpha=0.8, label='bt_over_crit')
+        axes[2].axhline(y=1.047, color='g', linestyle='--', alpha=0.8, label='bt_over_prec')
+        axes[2].axhline(y=0.866, color='g', linestyle='--', alpha=0.8, label='bt_under_prec')
+        axes[2].axhline(y=0.92, color='g', linestyle='--', alpha=0.8, label='bt_under_crit')
+
         #plt.title(f"Voltage Bus - {self.data_circuit}")
         plt.xlabel(f"Time steps")
         plt.tight_layout()  # Prevents label overlapping
@@ -343,7 +358,7 @@ class Analisys:
 
         for file in Path(path_file).glob('*Profile*.csv'):
             print(file.name)
-            titulo = f"Perfil de Tensão - {self.data_circuit} - Hora: {file.name.split("_")[-1].split('.')[0]}"
+            titulo = f"Perfil de Tensão - {self.data_circuit} - Hora: {file.name.split("_")[-1].split('.')[0]}h"
             df = pd.read_csv(file.absolute())
 
             plt.figure(figsize=figsize)
@@ -355,8 +370,17 @@ class Analisys:
             for _, row in df.iterrows():
                 x = [row[col_x1], row[col_x2]]
                 y = [row[col_y1], row[col_y2]]
+
                 idcolor = row[' Color']
                 tipo = row[' Linetype']
+
+                # verifica o maior valor para a média tensão e altera a escala do gráfico
+                if tipo == 0:
+                    if row[col_y1] > super_limite:
+                        super_limite = row[col_y1] * 1.03
+                    if row[col_y2] > super_limite:
+                        super_limite = row[col_y2] * 1.03
+
                 lw = 1.5
                 if tipo == 2:
                     lw = 0.75
@@ -371,7 +395,7 @@ class Analisys:
             plt.xlabel("Distância (km)", fontsize=12)
             plt.ylabel("Tensâo (pu)", fontsize=12)
             plt.axhline(y=1.05, color='r', linestyle='--', label='mt_over_crit')
-            plt.axhline(y=0.95, color='r', linestyle='--', label='mt_under_prec')
+            plt.axhline(y=0.93, color='r', linestyle='--', label='mt_under_prec')
             plt.axhline(y=0.90, color='r', linestyle='--', label='mt_under_crit')
             plt.axhline(y=1.06, color='g', linestyle='--', label='bt_over_crit')
             plt.axhline(y=1.047, color='g', linestyle='--', label='bt_over_prec')

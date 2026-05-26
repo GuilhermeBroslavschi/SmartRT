@@ -107,6 +107,9 @@ class SmartRT:
         # Check kv_base
         self.__check_kv_base()
 
+        if usar_setup_dinamico:
+            self.regcontrol_tsea_init()
+
     def regcontrol_tsea_init(self):
         dss = self.dss
         vn = 7967  # Todo verificar necessidade de alterar para 13.8/sqrt(3)
@@ -464,7 +467,7 @@ class SmartRT:
             sec = self.dss.solution.seconds
 
             print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
-            if hour in (6, 12, 20) and sec == 0:
+            if hour in (6, 12, 14, 19, 21) and sec == 0:
                 self.dss.text("Export Profile Phases=All")
                 path_dss = os.path.dirname(self.dss_file)
                 file_exp = os.path.join(path_dss, fr'{self.circuit}_EXP_Profile.CSV')
@@ -660,9 +663,9 @@ if __name__ == '__main__':
                     regcontrolname= reguladores,
                     patamar_ini=patamar_ini,
                     patamar_fim=patamar_fim,
-                    usar_setup_dinamico = True)
+                    usar_setup_dinamico = False)
 
-    simul.regcontrol_tsea_init()
+    #simul.regcontrol_tsea_init()
     simul.solve_circuit()
 
     print(f"Processo concluído em {time.time() - proc_time_ini}")

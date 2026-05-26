@@ -54,15 +54,15 @@ class Analisys:
 
     def plot_taps(self):
         df = pl.scan_csv(self.pesos_data_path)
-        df = df.select(["patamar", "tap", "reg_voltage", "vreg"])
+        df = df.select(["patamar", "tap_faseA", "reg_voltage_faseA", "vreg"])
         dados = df.collect().to_pandas()
 
 
         fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(10, 8))
 
-        dados["tap"].plot(ax=axes[0], title="TAP Change", color='blue')
+        dados["taptap_faseA"].plot(ax=axes[0], title="TAP Change", color='blue')
         dados["vreg"].plot(ax=axes[1], title="Vref", color='red')
-        dados["reg_voltage"].plot(ax=axes[2], title="Vreg", color='green')
+        dados["reg_voltage_faseA"].plot(ax=axes[2], title="Vreg", color='green')
 
         plt.xlabel(f"Time steps")
         plt.tight_layout()  # Prevents label overlapping
@@ -83,7 +83,7 @@ class Analisys:
 
 
 
-    def plot_rsults(self, dados):
+    def plot_results(self, dados):
         circuit = self.data_circuit
         # plt_path_base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados", circuit)
         plt_path_base = self.data_dir
@@ -196,9 +196,13 @@ class Analisys:
             print(chunk.head())
 
 if __name__ == "__main__":
+    circuito = 'RMTQ1302'
+    application_path = os.path.dirname(os.path.abspath(__file__))
+    csv_file = os.path.join(application_path, fr'.\resultados\{circuito}\voltage_bus.csv')
+
     # read_csv(r".\resultados\RMTQ1302\voltage_bus.csv")
 
-    results = Analisys(r".\resultados\RMTQ1302\novos_pontos_medicao\Com_setup_dinamico\voltage_bus.csv", "pesos.csv")
+    results = Analisys(csv_file, "pesos.csv")
 
     results.plot_taps()
 
@@ -208,8 +212,12 @@ if __name__ == "__main__":
 
     medicoes = ['bt4274688645149945mt02', 'mt434452545570824mt02', 'bt4361929845347146mt02',
              'mt4283709245476469mt02', 'bt430501424549936mt02']
+
+    medicoes = ['MT4413469336888117BO02', 'MT4433062136860652BO02', 'BT442046136909871BO02','BT4412232636952996BO02',
+                'BT4414649436930692BO02']
+
     results.plot_voltage(buses=medicoes, node=1)
 
     exit()
     dados = results.polar_read_csv()
-    results.plot_rsults(dados)
+    results.plot_results(dados)

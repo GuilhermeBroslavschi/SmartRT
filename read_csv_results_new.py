@@ -15,24 +15,32 @@ import matplotlib.ticker as ticker
 import seaborn as sns
 import pyarrow
 from dataclasses import dataclass
+from DRP_DRC import demanda_load, indic_DRP_DRC
+
 
 pd.set_option('display.max_rows', None)
 
 @dataclass
 class Analisys:
+    data_circuit: str
     data_path: str
     pesos_data: str
     data_dir = str
     data_file = str
-    data_circuit = str
     pesos_data_path= str
+    load_demand = []
 
     def __post_init__(self):
         full_path = Path(self.data_path)
         self.data_dir = full_path.parent
         self.data_file = full_path.name
-        self.data_circuit = full_path.parts[-2]
+        #self.data_circuit = full_path.parts[-2]
+
+        self.load_demand = demanda_load(self.data_circuit)
+
         self.pesos_data_path  = os.path.join(self.data_dir, self.pesos_data)
+
+
 
 
     def plot_voltage_by_pesos(self, buses_phases):
@@ -217,7 +225,7 @@ class Analisys:
             plt.show(block=False)
 
             # grafico de porcentagem - undervoltage
-            ax = bt_df_under.plot(kind='bar', stacked=True)
+            ax = bt_df_under.plot(kind='bar', ylim=(0 , escala_max), stacked=True)
             plt.title(f"BUS Violation: Undervoltage - {circuit}")
             plt.ylabel(f"Number (%)")
             plt.xlabel(f"Time steps")
@@ -228,7 +236,7 @@ class Analisys:
             plt.show(block=False)
 
             # grafico de porcentagem - overvoltage
-            ax = bt_df_over.plot(kind='bar', stacked=True)
+            ax = bt_df_over.plot(kind='bar', ylim=(0 , escala_max), stacked=True)
             plt.title(f"BUS Violation: Overvoltage - {circuit}")
             plt.ylabel(f"Number (%)")
             plt.xlabel(f"Time steps")
@@ -267,6 +275,10 @@ class Analisys:
     def polar_read_csv(self):
         proc_time_ini = time.time()
         results_combined = pd.DataFrame()
+        load_demand = pl.from_pandas(self.load_demand).lazy().with_columns([
+                             pl.col("bus").cast(pl.Categorical),
+                            ])
+        all_dados_drc_drp = pd.DataFrame()
 
         bloco_ini = -1
         points = np.linspace(0, 17280, 5)
@@ -305,6 +317,7 @@ class Analisys:
             #results = node_max_df.collect(engine="streaming").to_pandas()
             #print('')
 
+
             # ------------------------------------------------------------------
             # Calcula os indicadores
             # ------------------------------------------------------------------
@@ -336,14 +349,61 @@ class Analisys:
                 .sort(pl.col("patamar").cast(pl.UInt16), descending=False)
             )
 
+            # Filter the LazyFrame using the DataFrame das cargas
+            #dados_drc_drp = node_max_df.filter(pl.col('bus').is_in(self.load_demand))
+            dados_drc_drp = (
+                node_max_df.join(other=load_demand, on="bus", how="inner", suffix="_right")
+            ).sort("patamar", "bus")
+
+            #teste = dados_drc_drp.collect(engine="streaming").to_pandas()
+            #print("")
+
+            # ------------------------------------------------------------------
+            # Calcula os indicadores por carga
+            # ------------------------------------------------------------------
+            filtered_load = (
+                dados_drc_drp
+                .group_by( "cod_id")
+                .agg(
+                    ((pl.col("kv_base") > 1000) & (pl.col("max_vln_pu") > 1.05)).sum().alias("mt_overvolt_crit"),
+                    ((pl.col("kv_base") > 1000) & (
+                                (pl.col("min_vln_pu") >= 0.90) & (pl.col("min_vln_pu") < 0.93))).sum().alias(
+                        "mt_undervolt_prec"),
+                    ((pl.col("kv_base") > 1000) & (pl.col("min_vln_pu") < 0.90)).sum().alias("mt_undervolt_crit"),
+
+                    ((pl.col("kv_base") == 127) & ((pl.col("min_vln") > 0.2) & (pl.col("min_vln") < 110)) |
+                     (pl.col("kv_base") == 120) & ((pl.col("min_vln") > 0.2) & (pl.col("min_vln") < 104))
+                     ).sum().alias("bt_undervolt_crit"),
+                    ((pl.col("kv_base") == 127) & ((pl.col("min_vln") >= 110) & (pl.col("min_vln") < 117)) |
+                     (pl.col("kv_base") == 120) & ((pl.col("min_vln") >= 104) & (pl.col("min_vln") < 110))
+                     ).sum().alias("bt_undervolt_prec"),
+                    ((pl.col("kv_base") == 127) & ((pl.col("max_vln") > 133) & (pl.col("max_vln") <= 135)) |
+                     (pl.col("kv_base") == 120) & ((pl.col("max_vln") > 126) & (pl.col("max_vln") <= 127))
+                     ).sum().alias("bt_overvolt_prec"),
+                    ((pl.col("kv_base") == 127) & (pl.col("max_vln") >= 135) |
+                     (pl.col("kv_base") == 120) & (pl.col("max_vln") >= 127)
+                     ).sum().alias("bt_overvolt_crit"),
+
+                    (pl.col("kv_base") < 1000).sum().alias("cnt_bt_bus"),
+                    (pl.col("kv_base") > 1000).sum().alias("cnt_mt_bus"),
+
+                )
+                #.sort(pl.col("patamar").cast(pl.UInt16), descending=False)
+            )
+
             results  = filtered_df.collect(engine="streaming").to_pandas()
             results_combined = pd.concat([results_combined, results], axis=0)
+
+            dados = filtered_load.collect(engine="streaming").to_pandas()
+            all_dados_drc_drp = pd.concat([all_dados_drc_drp, dados], axis=0)
 
             # print(f"Result:   {results}")
             print(f"Processo concluído para o bloco: {bloco} em {time.time() - proc_time_ini}")
             bloco_ini = bloco
+
         results_combined.reset_index(drop=True, inplace=True)
-        return results_combined
+        all_dados_drc_drp = all_dados_drc_drp.groupby('cod_id').sum().reset_index()
+        return results_combined, all_dados_drc_drp
 
     def plot_perfil_tensao(self,
             path_file,
@@ -354,9 +414,10 @@ class Analisys:
             titulo=f"Perfil de Tensão do Circuito",
             figsize=(10, 5),
             mostrar_nos=False,
+            setup_dinamico = "False",
     ):
 
-        for file in Path(path_file).glob('*Profile*.csv'):
+        for file in Path(path_file).glob(f'*{setup_dinamico}_Profile*.csv'):
             print(file.name)
             titulo = f"Perfil de Tensão - {self.data_circuit} - Hora: {file.name.split("_")[-1].split('.')[0]}h"
             df = pd.read_csv(file.absolute())
@@ -411,6 +472,7 @@ class Analisys:
             #plt.savefig(plt_path, dpi=600, bbox_inches='tight', transparent=False)
             plt.show()
 
+
     def read_csv(filename):
         # Define a chunk size (number of rows)
         chunk_size = 10000
@@ -439,7 +501,11 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     circuito = 'RMTQ1302'
-    #circuito = 'RAVP1303'
+    cenario = 'TSEA'
+    circuito = 'RAVP1303'
+    cenario = 'BASE'
+    com_setup_dinamico = 'True'
+
     application_path = os.path.dirname(os.path.abspath(__file__))
     csv_file = os.path.join(application_path, fr'.\resultados\{circuito}\voltage_bus.csv')
     # read_csv(r".\resultados\RMTQ1302\voltage_bus.csv")
@@ -453,12 +519,15 @@ if __name__ == "__main__":
 
 
     # inicializa a classe de analise dos resultados
-    print("Inicialização da classe de análise gráfica...")
-    results = Analisys(csv_file, "pesos.csv")
+    print(f"Inicialização da classe de análise gráfica para {circuito}... ")
+    results = Analisys(circuito, csv_file, "pesos.csv")
+    # Análise das condições das barras ao longo do dia
+
 
     # prefil de tensões
     print("Gráficos de pefil de tensão...")
-    results.plot_perfil_tensao(os.path.join(application_path, fr'cenarios\{circuito}_TSEA'))
+    results.plot_perfil_tensao(os.path.join(application_path, fr'cenarios\{circuito}_{cenario}'),
+                               setup_dinamico=com_setup_dinamico)
 
     # Tensões dos pontos de medição
     print("Gráficos de tensões nos pontos de medição...")
@@ -470,8 +539,11 @@ if __name__ == "__main__":
 
     # Análise das condições das barras ao longo do dia
     print("Gráficos de análise de tensões de toddas as barras...")
-    dados = results.polar_read_csv()
+    dados, dados_drc_drp = results.polar_read_csv()
     results.plot_results(dados)
+
+    print("Calculando compesações - DRP - DRC")
+    indic_DRP_DRC(circuito, dados_drc_drp, results.load_demand)
 
     exit()
 

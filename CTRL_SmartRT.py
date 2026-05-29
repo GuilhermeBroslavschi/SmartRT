@@ -448,8 +448,13 @@ if __name__ == '__main__':
     # O primeiro regulador da lista deve ter a mesma fase das barras de medição selecionadas.
     regcontrol = ['creg_295rt000020129c', 'creg_295rt000020129a', 'creg_295rt000020129b']
 
+    pontos_de_medicao = ['BT4274688645149945MT02.1', 'MT434452545570824MT02.1', 'BT4361929845347146MT02.1',
+                         'mt4283709245476469mt02.1', 'BT430501424549936MT02.1']
+
+
+
     num_patamatares = 17280             # numero total de patamares da simulação
-    patamar_ini = 0                 # 2520   # numero de patamares - converter a hora de inicio da simulação em patamares
+    patamar_ini = 0                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
     patamar_fim = 17280             # 5000   # converter a hora de fim da simulação em patamares
 
     proc_time_ini = time.time()

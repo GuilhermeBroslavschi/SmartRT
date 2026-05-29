@@ -3,3 +3,6 @@ numpy>=1.19
 pyarrow>=5.0
 plotly >=5.0
 py_dss_interface>=0.4
+
+matplotlib
+sqlalchemy

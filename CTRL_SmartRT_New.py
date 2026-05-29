@@ -110,6 +110,9 @@ class SmartRT:
 
         if usar_setup_dinamico:
             self.regcontrol_tsea_init()
+            self.usar_setup_dinamico = "True"
+        else:
+            self.usar_setup_dinamico = "False"
 
     def regcontrol_tsea_init(self):
         dss = self.dss
@@ -472,7 +475,10 @@ class SmartRT:
                 self.dss.text("Export Profile Phases=All")
                 path_dss = os.path.dirname(self.dss_file)
                 file_exp = os.path.join(path_dss, fr'{self.circuit}_EXP_Profile.CSV')
-                os.replace(file_exp, f'{self.circuit}_EXP_Profile_time_{hour}.CSV')
+                try:
+                    os.replace(file_exp, f'{self.circuit}_{self.usar_setup_dinamico}_EXP_Profile_time_{hour}.CSV')
+                except FileNotFoundError:
+                    print(f"Error: The file '{file_exp}' was not found.\n")
 
             self.dss.solution.solve()
             status = self.dss.solution.converged
@@ -484,7 +490,7 @@ class SmartRT:
                     self.dss.text(f"set loadmult={new_load_mult}")
                     self.dss.text(f"set time = ({hour}, {sec})")
                     print(f"Patamar:{number}, hour: {hour}, seconds: {sec}")
-
+                    self.__check_kv_base()
                     self.dss.solution.solve()
                     self.dss.text(f"set loadmult=1.0")
 
@@ -626,8 +632,8 @@ if __name__ == '__main__':
     #circuito = 'RAVP1305'
     #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1305_17280.dss')
 
-    #circuito = 'RAVP1303'
-    #dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1303_17280.dss')
+    circuito = 'RAVP1303'
+    dss_file = os.path.join(application_path, fr'cenarios\{circuito}_BASE\DU_7_Master_391_AVP_RAVP1303_17280.dss')
 
     # Os pontos de medição devem ser da mesma fase.
     #pontos_de_medicao = ['mt4339274745933283mt02.1', 'mt4291205645697419mt02.1', 'mt4294449845693038mt02.1',
@@ -645,7 +651,7 @@ if __name__ == '__main__':
 
 
     num_patamatares = 17280             # numero total de patamares da simulação
-    patamar_ini = 0                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
+    patamar_ini = 1                 # 3600   # numero de patamares - converter a hora de inicio da simulação em patamares
     patamar_fim = 17280             # 5000   # converter a hora de fim da simulação em patamares
 
 

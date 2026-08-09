@@ -48,10 +48,10 @@ data_smartCAP:
 #    - '0,Corrente'
     - '1,Tensao'
 #    - '2,kvar'
-#    - '3,Tempo'
+    - '3,Tempo'
 #    - '4,PF'
-#    - '5,Fixo'
-#    - '6,Desligado'
+    - '5,Fixo'
+    - '6,Desligado'
   month: 7 #[1, 7]
   type_day: 'DU' #['DU', 'DO']
   num_patamares: 24

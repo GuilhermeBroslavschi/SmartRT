@@ -126,7 +126,7 @@
     </div>
     <div class="panel">
       <h2>Perdas Elétricas</h2>
-      <div class="sub">Perdas totais do circuito ao longo do dia (kW)</div>
+      <div class="sub">Perdas totais do circuito ao longo do dia (kW/kVAr)</div>
       <div id="plot-perdas" class="plot"></div>
     </div>
   </div>
@@ -292,6 +292,7 @@ async function carregarControlCap(cenarioId, circuitoId, controleId) {
     // Agrupa por nome
     //===========================
     const grupos = {};
+    let max_step = 0
     for (let i = 0; i < d.nome.length; i++) {
         const nome = d.nome[i];
         if (!grupos[nome]) {
@@ -307,6 +308,12 @@ async function carregarControlCap(cenarioId, circuitoId, controleId) {
     }
     const tracesStep = [];
     const tracesVmag = [];
+
+    const max_step_cap = Math.max.apply(Math,d.step) + 1
+    if (max_step_cap > max_step) {
+     max_step = max_step_cap;
+    }
+    console.log(max_step)
 
     Object.entries(grupos).forEach(([nome, pontos]) => {
 
@@ -382,12 +389,14 @@ async function carregarControlCap(cenarioId, circuitoId, controleId) {
               //title: 'Atuação dos Bancos de Capacitores',
               xaxis: {
                   ...layoutBase.xaxis,
-                  title: 'Patamar'
+                  title: 'Patamar',
+
               },
               yaxis: {
                   ...layoutBase.yaxis,
                   title: 'Step',
-                  dtick: 1
+                  dtick: 1,
+                  range:[0, max_step],
               }
           },
           plotConfig
@@ -410,6 +419,7 @@ async function carregarControlCap(cenarioId, circuitoId, controleId) {
                   ...layoutBase.yaxis,
                   title: 'Tensão (pu)'
               }
+
           },
           plotConfig
       );
@@ -428,13 +438,28 @@ async function carregarPotenciaPerdas(cenarioId, circuitoId, controleId) {
     if (d.erro) throw new Error(d.erro);
     if (!d) { mostrarMensagem('plot-potencia', 'Sem dados para este cenario/circuito.'); mostrarMensagem('plot-perdas', 'Sem dados para este cenario/circuito.'); return; }
 
+    const dataHora = [];
+    const max_patamar  = Math.max.apply(Math,d.patamar);
+    //console.log (max_patamar);
+    for (let i = 0; i < max_patamar+1; i++) {
+      //console.log((60/((max_patamar+1) / 24) * 60))
+      given_seconds = d.patamar[i] * (60 / ((max_patamar + 1) / 24) * 60);
+
+
+      //new Date(SECONDS * 1000).toISOString().substring(14, 19)
+      //console.log(timeString)
+      //console.log(given_seconds)
+      dataHora.push(new Date(given_seconds * 1000).toISOString().slice(11, 16))
+      //console.log(dataHora[i])
+    }
+
     Plotly.newPlot('plot-potencia', [
-      { x: d.patamar, y: d.p1, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase A (kW)', line: { color: CORES.ativa_1, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
-      { x: d.patamar, y: d.p2, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase B (kW)', line: { color: CORES.ativa_2, width: 2.5 } },
-      { x: d.patamar, y: d.p3, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase C (kW)', line: { color: CORES.ativa_3, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
-      { x: d.patamar, y: d.q1, type: 'scatter', mode: 'lines', name: 'Potencia Reativa - Fase A (kVAr)', line: { color: CORES.reativa_1, width: 2.5 } },
-      { x: d.patamar, y: d.q2, type: 'scatter', mode: 'lines', name: 'Potencia Reativa - Fase B (kVAr)', line: { color: CORES.reativa_2, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
-      { x: d.patamar, y: d.q3, type: 'scatter', mode: 'lines', name: 'Potencia Reativa - Fase C (kVAr)', line: { color: CORES.reativa_3, width: 2.5 } },
+      { x: dataHora, y: d.p1, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase A (kW)', line: { color: CORES.ativa_1, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
+      { x: dataHora, y: d.p2, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase B (kW)', line: { color: CORES.ativa_2, width: 2.5 } },
+      { x: dataHora, y: d.p3, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase C (kW)', line: { color: CORES.ativa_3, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
+      { x: dataHora, y: d.q1, type: 'scatter', mode: 'lines', name: 'Potencia Reativa - Fase A (kVAr)', line: { color: CORES.reativa_1, width: 2.5 } },
+      { x: dataHora, y: d.q2, type: 'scatter', mode: 'lines', name: 'Potencia Reativa - Fase B (kVAr)', line: { color: CORES.reativa_2, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
+      { x: dataHora, y: d.q3, type: 'scatter', mode: 'lines', name: 'Potencia Reativa - Fase C (kVAr)', line: { color: CORES.reativa_3, width: 2.5 } },
 
     ], { ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Hora', nticks: 24 }, yaxis: { ...layoutBase.yaxis, title: 'kW / kVAr' } }, plotConfig);
 
@@ -453,7 +478,11 @@ async function carregarPotenciaPerdas(cenarioId, circuitoId, controleId) {
 
       { x: d.patamar, y: d.fp_tri, type: 'scatter', mode: 'lines', name: 'Fator de Potência 3&#934;', visible: 'legendonly', line: { color: CORES.reativa_3, width: 4 } },
 
-    ], { ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Hora',  nticks: 24 }, yaxis: { ...layoutBase.yaxis, title: 'FP' } }, plotConfig);
+    ], { ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Hora',  nticks: 24 }, yaxis:
+              { ...layoutBase.yaxis,
+                //range:[-0.5, 1.5],
+                title: 'FP' }
+    }, plotConfig);
 
 
   } catch (e) {

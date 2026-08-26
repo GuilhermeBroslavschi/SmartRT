@@ -43,14 +43,15 @@ data_smartCAP:
 #    - 'TAQ26'
   cenario:
 #    - '1,Caso_Base'
-    - '2,Caso_Base_24'
+    - '2,Caso_kvar'
+#    - '3,Caso_tensao'
   controle:
 #    - '0,Corrente'
-    - '1,Tensao'
+#    - '1,Tensao'
 #    - '2,kvar'
-    - '3,Tempo'
-#    - '4,PF'
-    - '5,Fixo'
+#    - '3,Tempo'
+#    - '4,FP'
+#    - '5,Fixo'
     - '6,Desligado'
   month: 7 #[1, 7]
   type_day: 'DU' #['DU', 'DO']

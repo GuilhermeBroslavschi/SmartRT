@@ -151,6 +151,25 @@
     </div>
   </div>
 
+
+
+  <!--// Inserido por Guilherme-->
+  <div class="grid">
+      <div class="panel full">
+        <h2>Fator de Potência pela Distância</h2>
+        <div class="sub">Fator de potência por barra ao longo do alimentador no horário: <span id="text_fp_distancia">{{horario_referencia}}</span> horas.</div>
+        <div id="plot-fp-distancia" class="plot tall"></div>
+        <div class="slidecontainer">
+          <input type="range" min="1" max="24" step="1" value="{{horario_referencia}}" class="slider" id="slider-fp-distancia" oninput="getdataFpDistancia()" style="width:100%;">
+            <p class="sub">Hora: <span id="hour-fp-distancia">{{horario_referencia}}</span></p>
+          <div style="margin-top: 8px;">
+          </div>
+        </div>
+      </div>
+  </div>
+
+
+
     <div class="grid">
     <div class="panel">
       <h2>Atuação dos Bancos de Capacitores</h2>
@@ -217,6 +236,31 @@ function getdataperfil() {
     //console.log( tipo);
     carregarPerfilTensao(cenarioId, circuitoId, slider.value, tipo, controleId);
 }
+
+
+
+<!--// Inserido por Guilherme-->
+<!--// FP x distância-->
+function getdataFpDistancia() {
+    const slider = document.getElementById("slider-fp-distancia");
+    const hour = document.getElementById("hour-fp-distancia");
+    hour.innerHTML = slider.value;
+    document.getElementById("text_fp_distancia").innerHTML = slider.value;
+    const circuitoId = document.getElementById('sel-circuito').value;
+    const cenarioId =  document.getElementById('sel-cenario').value;
+    const controleId = document.getElementById('sel-controle').value;
+
+    carregarFpDistancia(cenarioId, circuitoId, slider.value, controleId);
+}
+
+function fpToAxis(fp) {
+    if (fp >= 0) {
+        return fp;
+    }
+    return 2 + fp;
+}
+
+
 
 // setInterval(function () {
 //   if (slider.value === slider.max){
@@ -565,6 +609,154 @@ async function carregarPerfilTensao(cenarioId, circuitoId, hora, tipo, controleI
   document.body.style.cursor = 'default';
 }
 
+
+
+<!--// Inserido por Guilherme-->
+async function carregarFpDistancia(cenarioId, circuitoId, hora, controleId) {
+    try {
+        const r = await fetch(
+            `/api/fp_distancia?cenario_id=${cenarioId}` +
+            `&circuito_id=${circuitoId}` +
+            `&controle_id=${controleId}` +
+            `&hora=${hora}`
+        );
+
+        const d = await r.json();
+        console.log("FP Distância:", d);
+
+        if (d.erro) {
+            throw new Error(d.erro);
+        }
+
+        if (!d.distancia || d.distancia.length === 0) {
+            mostrarMensagem(
+                'plot-fp-distancia',
+                'Sem dados de fator de potência para este horário.'
+            );
+            return;
+        }
+
+        const phaseColors = {
+            1: 'blue',      // Fase A
+            2: 'red',       // Fase B
+            3: 'yellow'     // Fase C
+        };
+
+        const phaseNames = {
+            1: 'Fase A',
+            2: 'Fase B',
+            3: 'Fase C'
+        };
+
+        const traces = [];
+
+        for (let node = 1; node <= 3; node++) {
+            const indices = [];
+
+            for (let i = 0; i < d.node.length; i++) {
+                if (Number(d.node[i]) === node) {
+                    indices.push(i);
+                }
+            }
+
+            // Se não existir esse node, não cria trace
+            if (indices.length === 0) {
+                continue;
+            }
+
+            const distancia = indices.map(i => d.distancia[i]);
+            const fp = indices.map(i => d.fp[i]);
+
+            const fpAxis = fp.map(fp => {
+                if (fp >= 0) {
+                    return fp;
+                }
+                return 2 + fp;
+            });
+
+            traces.push({
+                x: distancia,
+                y: fpAxis,
+                type: 'scatter',
+                mode: 'markers',
+                name: phaseNames[node],
+                marker: {color: phaseColors[node], size: 3},
+                text: indices.map(i => d.node[i]),
+
+                customdata: fp,
+
+                hovertemplate:
+                    'Fase: ' + phaseNames[node] + '<br>' +
+                    'Node: %{text}<br>' +
+                    'Distância: %{x:.2f} km<br>' +
+                    'FP: %{customdata:.4f}' +
+                    '<extra></extra>'
+            });
+        }
+
+        Plotly.newPlot(
+            'plot-fp-distancia',
+            traces,
+            {
+                ...layoutBase,
+
+                xaxis: {
+                    ...layoutBase.xaxis,
+                    title: 'Distância (km)'
+                },
+
+                yaxis: {
+                    ...layoutBase.yaxis,
+                    title: 'Fator de Potência',
+
+                    tickvals: [
+                        0.0,
+                        0.2,
+                        0.4,
+                        0.6,
+                        0.8,
+                        1.0,
+                        1.2,
+                        1.4,
+                        1.6,
+                        1.8,
+                        2.0
+                    ],
+
+                    ticktext: [
+                        '0.0',
+                        '0.2',
+                        '0.4',
+                        '0.6',
+                        '0.8',
+                        '1',
+                        '-0.8',
+                        '-0.6',
+                        '-0.4',
+                        '-0.2',
+                        '-0.0'
+                    ],
+
+                    range: [0.0, 2.0],
+                    autorange: false
+                },
+                showlegend: true
+            },
+            plotConfig
+        );
+
+    } catch (e) {
+        console.log(e);
+        mostrarMensagem(
+            'plot-fp-distancia',
+            e.message,
+            true
+        );
+    }
+}
+
+
+
 async function carregarViolacoes(cenarioId, circuitoId) {
   try {
     const r = await fetch(`/api/violacoes-tensao?cenario_id=${cenarioId}&circuito_id=${circuitoId}`);
@@ -631,11 +823,13 @@ async function carregarRadar(circuitoId, cenarioIds) {
   }
 }
 
+<!--// Modificado por Guilherme-->
 async function atualizarTudo() {
   const circuitoId = document.getElementById('sel-circuito').value;
   const cenarioId = document.getElementById('sel-cenario').value;
   const controleId = document.getElementById('sel-controle').value;
   const cenariosComp = Array.from(document.getElementById('sel-cenarios-comp').selectedOptions).map(o => o.value);
+  const sliderFp = document.getElementById('slider-fp-distancia');
   //console.log(circuitoId)
   //console.log(cenarioId)
   if (!circuitoId || !cenarioId) return;
@@ -643,6 +837,8 @@ async function atualizarTudo() {
   carregarPotenciaPerdas(cenarioId, circuitoId, controleId);
   carregarPerfilTensao(cenarioId, circuitoId, slider.value, 0, controleId);
   carregarControlCap(cenarioId, circuitoId, controleId);
+
+  carregarFpDistancia(cenarioId, circuitoId, sliderFp.value, controleId);
 
   carregarViolacoes(cenarioId, circuitoId, controleId);
   carregarRadar(circuitoId, cenariosComp, controleId);

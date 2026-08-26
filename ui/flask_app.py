@@ -166,6 +166,57 @@ def api_potencia_perdas():
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+# ---------------------------------------------------------------
+# Fator de potência pela distância
+# ---------------------------------------------------------------
+# @server.route("/api/fp_distancia")
+# def api_fp_distancia():
+#     try:
+#         cenario_id = request.args.get("cenario_id", type=int)
+#         circuito = request.args.get("circuito_id", type=str)
+#         controle_id = request.args.get("controle_id", type=int)
+#         #hora = request.args.get("hora", type=int)
+#         if not cenario_id or not circuito: # or not hora:
+#             return jsonify({"erro": "Informe cenario_id, circuito e hora"}), 400
+#
+#         query = f'''SELECT hora, node, fp, distancia FROM dbo.barra
+#                         WHERE cenario_id={cenario_id} AND circuito='{circuito}' AND controle_id={controle_id}
+#                         ORDER BY distancia '''
+#
+#         # query = f'''SELECT hora, node, fp, distancia FROM dbo.barra
+#         #         WHERE cenario_id={cenario_id} AND circuito='{circuito}' AND controle_id={controle_id} AND hora='{hora}'
+#         #         ORDER BY distancia '''
+#
+#         resultado = pd.read_sql_query(sql=query, con=engine)
+#
+#         return resultado.to_dict(orient='list')
+#
+#     except Exception as e:
+#         return jsonify({"erro": str(e)}), 500
+
+@server.route("/api/fp_distancia")
+def api_fp_distancia():
+    try:
+        cenario_id = request.args.get("cenario_id", type=int)
+        circuito = request.args.get("circuito_id", type=str)
+        controle_id = request.args.get("controle_id", type=int)
+        hora = request.args.get("hora", type=int)
+
+        if cenario_id is None or not circuito or controle_id is None or hora is None:
+            return jsonify({"erro": "Informe cenario_id, circuito, controle_id e hora"}), 400
+
+        query = f'''SELECT hora, node, fp, distancia FROM dbo.barra
+                    WHERE cenario_id = {cenario_id} AND circuito = '{circuito}' AND controle_id = {controle_id} AND hora = {hora}
+                    ORDER BY distancia'''
+
+        resultado = pd.read_sql_query(sql=query, con=engine)
+
+        return resultado.to_dict(orient='list')
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
 if __name__ == '__main__':
     # server.run(host='0.0.0.0', use_reloader=False, debug=True, ssl_context=('cert.pem', 'key.pem'))
     server.run(host='0.0.0.0', use_reloader=False, debug=True)

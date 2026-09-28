@@ -1,9 +1,9 @@
 # Arquivo de configurações para o script CTRL_SmartCap.py
 data_smartCAP:
   feeder_path: 'C:/SmartRT/feeders/'
-  utility: '391' #'63'
+  utility: '63' #'391'
   feeder:
-    - 'RMTQ1302' #EDP-391
+#    - 'RMTQ1302' #EDP-391
 #    - 'ABR07'
 #    - 'ABR08'
 #    - 'ABR09'
@@ -14,7 +14,7 @@ data_smartCAP:
 #    - 'AER04'
 #    - 'AER05'
 #    - 'AGU07'
-#    - 'AGU08'
+    - 'AGU08'
 #    - 'AGU09'
 #    - 'AGU10'
 #    - 'MBA13'
@@ -42,20 +42,63 @@ data_smartCAP:
 #    - 'TAQ25'
 #    - 'TAQ26'
   cenario:
-#    - '1,Caso_Base'
-    - '2,Caso_kvar'
-#    - '3,Caso_tensao'
+#    - '1,Caso_kvar' #391 RMTQ1302
+#    - '2,Caso_tensao' #391 RMTQ1302
+#    - '3,Casokvar1' #63 TAQ03
+#    - '4,Casokvar2' #63 TAQ03
+#    - '5,CasoSemGD'
+#    - '6,CasoComGD'
+#    - '7,CasoCarga'
+#    - '8,CasoNovoBC'
+#    - '9,CasoReparametrizacao'
+    - '10,CasoSemGDFalhaCAP272A'
+    - '11,CasoSemGDFalhaCAP272B'
+    - '12,CasoSemGDFalhaCAP272C'
+    - '13,CasoSemGDFalhaCAP618A'
+    - '14,CasoSemGDFalhaCAP618B'
+    - '15,CasoSemGDFalhaCAP618C'
+    - '16,CasoComGDFalhaCAP272A'
+    - '17,CasoComGDFalhaCAP272B'
+    - '18,CasoComGDFalhaCAP272C'
+    - '19,CasoComGDFalhaCAP618A'
+    - '20,CasoComGDFalhaCAP618B'
+    - '21,CasoComGDFalhaCAP618C'
+    - '22,CasoCargaFalhaCAP272A'
+    - '23,CasoCargaFalhaCAP272B'
+    - '24,CasoCargaFalhaCAP272C'
+    - '25,CasoCargaFalhaCAP618A'
+    - '26,CasoCargaFalhaCAP618B'
+    - '27,CasoCargaFalhaCAP618C'
+    - '28,CasoNovoBCFalhaCAP272A'
+    - '29,CasoNovoBCFalhaCAP272B'
+    - '30,CasoNovoBCFalhaCAP272C'
+    - '31,CasoNovoBCFalhaCAP618A'
+    - '32,CasoNovoBCFalhaCAP618B'
+    - '33,CasoNovoBCFalhaCAP618C'
+    - '34,CasoNovoBCFalhaCAP457A'
+    - '35,CasoNovoBCFalhaCAP457B'
+    - '36,CasoNovoBCFalhaCAP457C'
+#    - '37,CasoReparametFalhaCAP272A'
+#    - '38,CasoReparametFalhaCAP272B'
+#    - '39,CasoReparametFalhaCAP272C'
+#    - '40,CasoReparametFalhaCAP618A'
+#    - '41,CasoReparametFalhaCAP618B'
+#    - '42,CasoReparametFalhaCAP618C'
+#    - '43,CasoReparametFalhaCAP457A'
+#    - '44,CasoReparametFalhaCAP457B'
+#    - '45,CasoReparametFalhaCAP457C'
   controle:
 #    - '0,Corrente'
-#    - '1,Tensao'
-#    - '2,kvar'
-#    - '3,Tempo'
+    - '1,Tensao'
+    - '2,kvar'
+    - '3,Tempo'
 #    - '4,FP'
-#    - '5,Fixo'
+    - '5,Fixo'
     - '6,Desligado'
   month: 7 #[1, 7]
   type_day: 'DU' #['DU', 'DO']
   num_patamares: 24
   patamar_ini: 0
   patamar_fim: 24
+  hour: 8 #Hora da falha do BC - Apenas para os cenários de falhas
   multiprocess: False

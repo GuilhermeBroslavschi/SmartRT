@@ -33,7 +33,7 @@ def gerador_positivo_negativo():
 
 
 class Feeder_Condition:
-    def __init__(self, utility, substation, feeder, dss_file, num_patamares, patamar_ini, patamar_fim, cenario, controle):
+    def __init__(self, utility, substation, feeder, dss_file, num_patamares, patamar_ini, patamar_fim, hour, cenario, controle):
         dss = py_dss_interface.DSS()
         self.dss = dss
 
@@ -44,12 +44,13 @@ class Feeder_Condition:
         self.total_patamar = num_patamares
         self.patamar_ini = patamar_ini
         self.patamar_fim = patamar_fim
+        self.hour = hour
         self.cenario_id = cenario.split(",")[0]
         self.cenario = cenario.split(",")[1]
         self.controle_id = controle.split(",")[0]
         self.controle = controle.split(",")[1]
 
-        print(f"🚀 Processando o Alimentador:{self.feeder}; Cenário:{self.cenario}; Controle:{self.controle} | {multiprocessing.current_process().name}")
+        print(f"\n🚀 Processando o Alimentador:{self.feeder}; Cenário:{self.cenario}; Controle:{self.controle} | {multiprocessing.current_process().name}")
 
         # ensure DSS is ready
         self._read_dss_file()
@@ -219,9 +220,14 @@ class Feeder_Condition:
         self.dss.text("set maxiterations = 100")
 
         if self.total_patamar == 24:
-            self.dss.text(f"set stepsize = 1h")
-            horas = self.patamar_ini
-            total_sec = 0
+            if "falha" in self.cenario.lower():
+                self.dss.text(f"set stepsize = 1h")
+                horas = self.hour
+                total_sec = 0
+            else:
+                self.dss.text(f"set stepsize = 1h")
+                horas = self.patamar_ini
+                total_sec = 0
 
         else:
             self.dss.text(f"set stepsize = {86400 / self.total_patamar}s")
@@ -371,12 +377,6 @@ class Feeder_Condition:
         except:
             print('Error: insert database...')
 
-    def _read_voltage_cap(self):
-        for capacitor_name in self.dss.capacitors.names:
-            self.dss.monitors.name = capacitor_name
-            print(f'Capacitor: {capacitor_name} '
-                  f'kV: {self.dss.monitors.channel(1)[-1]/7967}  {self.dss.monitors.channel(3)[-1]/7967} {self.dss.monitors.channel(5)[-1]/7967}')
-
     def _read_cap(self, number, hour, sec):
         cap_rows = []
         cap_dados_rows = []
@@ -473,7 +473,7 @@ class Feeder_Condition:
                              "kv_base": kv_base
                              })
 
-            print(f"{capacitor_name}; step:{current_steps}; ctrl_on:{ctrl_on}; ctrl_off:{ctrl_off}")
+            print(f"capacitor:{capacitor_name}; step:{current_steps}; ctrl_on:{ctrl_on}; ctrl_off:{ctrl_off}")
 
         if number == 0:
             self.__save_results_db("equipamento", cap_rows)
@@ -652,7 +652,7 @@ class Feeder_Condition:
                 self.dss.circuit.set_active_element(f"capacitor.{self.dss.capacitors.name}")
                 powers = self.dss.cktelement.powers
                 kvar_bus1 = powers[1::2]
-                print(f'{self.dss.capacitors.name}; {self.controle}; Enabled:{self.dss.cktelement.is_enabled}; States:{self.dss.capacitors.states}; kvar:{(sum(kvar_bus1) * (self.dss.cktelement.is_enabled)):.2f} de -{float(self.dss.capacitors.kvar)} ')
+                print(f'Capacitor:{self.dss.capacitors.name}; Control:{self.controle}; Enabled:{self.dss.cktelement.is_enabled}; States:{self.dss.capacitors.states}; kvar:{(sum(kvar_bus1) * (self.dss.cktelement.is_enabled)):.2f} de -{float(self.dss.capacitors.kvar)} ')
 
             if 1 <= hour <= 24 and sec == 0:
                 path_dss = os.path.dirname(self.dss_file)
@@ -678,6 +678,7 @@ class Task:
     num_patamares: int
     patamar_ini: int
     patamar_fim: int
+    hour: int
     config: Dict
 
 
@@ -687,25 +688,27 @@ def find_file(filename: str, search_path: str):
             return Path(root) / filename
     return None
 
-def run_feeder_mode(utility, substation, feeder, cenarios, controles, months, type_days, num_patamares, patamar_ini, patamar_fim, config):
-    if num_patamares == 24:
-        for cenario in cenarios:
-            if cenario == '1,Caso_Base':
-                master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}.dss"
-            else:
-                for controle in controles:
-                    master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}_{cenario.split(",")[1]}_{controle.split(",")[1]}.dss"
-    else:
-        master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}_{num_patamares}.dss"
+def run_feeder_mode(utility, substation, feeder, cenarios, controles, months, type_days, num_patamares, patamar_ini, patamar_fim, hour, config):
+    # if num_patamares == 24:
+    #     for cenario in cenarios:
+    #         if cenario == '1,Caso_Base':
+    #             master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}.dss"
+    #         else:
+    #             for controle in controles:
+    #                 master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}_{cenario.split(",")[1]}_{controle.split(",")[1]}.dss"
+    # else:
+    #     master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}_{num_patamares}.dss"
 
     for cenario in cenarios:
-        feeder_path = Path(config["feeder_path"]).resolve()
-        master_path = find_file(master_filename, search_path=feeder_path)
-        if master_path is None:
-            print(f"❌ Master file não encontrado: {feeder_path} {master_filename}")
-            return
-
         for controle in controles:
+
+            master_filename = f"{type_days[0]}_{months[0]}_Master_{utility}_{substation}_{feeder}_{cenario.split(",")[1]}_{controle.split(",")[1]}.dss"
+
+            feeder_path = Path(config["feeder_path"]).resolve()
+            master_path = find_file(master_filename, search_path=feeder_path)
+            if master_path is None:
+                print(f"❌ Master file não encontrado: {feeder_path} {master_filename}")
+                return
 
             simul = Feeder_Condition(
                             utility=utility,
@@ -715,6 +718,7 @@ def run_feeder_mode(utility, substation, feeder, cenarios, controles, months, ty
                             num_patamares=num_patamares,
                             patamar_ini=patamar_ini,
                             patamar_fim=patamar_fim,
+                            hour=hour,
                             cenario=cenario,
                             controle=controle
                             )
@@ -731,6 +735,7 @@ def process_task(task: Task):
     num_patamares = task.num_patamares
     patamar_ini = task.patamar_ini
     patamar_fim = task.patamar_fim
+    hour = task.hour
     config = task.config
 
     if isinstance(feeders, str):
@@ -747,7 +752,7 @@ def process_task(task: Task):
     for feeder in feeders:
         run_feeder_mode(
             utility=utility,
-            substation=feeder[1:4], #config['feeder_path'].split(os.sep)[-1],
+            substation=feeder[0:3], #config['feeder_path'].split(os.sep)[-1],
             feeder=feeder,
             cenarios=cenarios,
             controles=controles,
@@ -756,6 +761,7 @@ def process_task(task: Task):
             num_patamares=num_patamares,
             patamar_ini=patamar_ini,
             patamar_fim=patamar_fim,
+            hour=hour,
             config=config
         )
 
@@ -776,6 +782,7 @@ def build_tasks_from_config(config: Dict) -> List[Task]:
     num_patamares = config["num_patamares"]
     patamar_ini = config["patamar_ini"]
     patamar_fim = config["patamar_fim"]
+    hour = config["hour"]
 
     tasks: List[Task] = []
 
@@ -794,6 +801,7 @@ def build_tasks_from_config(config: Dict) -> List[Task]:
                             num_patamares=int(num_patamares),
                             patamar_ini=int(patamar_ini),
                             patamar_fim=int(patamar_fim),
+                            hour=int(hour),
                             config=config)
                         )
 

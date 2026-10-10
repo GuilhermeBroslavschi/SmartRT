@@ -144,7 +144,9 @@ def api_potencia_perdas():
         if not cenario_id or not circuito:
             return jsonify({"erro": "Informe cenario_id e circuito"}), 400
 
-        query = f'''Select patamar, p1, p2, p3, q1, q2, q3, p_losses, q_losses
+        query = f'''Select patamar, hora, seg, p1, p2, p3, q1, q2, q3
+                , ISNULL(p_losses, 0) as p_losses, ISNULL(q_losses, 0) as q_losses
+                , ISNULL(p_losses_line, 0) as p_losses_line, ISNULL(q_losses_line, 0) as q_losses_line
                 , p1/sqrt(POWER(p1,2)+POWER(q1,2)) as fp1
                 , p2/sqrt(POWER(p2,2)+POWER(q2,2)) as fp2
                 , p3/sqrt(POWER(p3,2)+POWER(q3,2)) as fp3
@@ -165,6 +167,100 @@ def api_potencia_perdas():
         })
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+
+# ---------------------------------------------------------------
+# Análise comparativa - grafico radar
+# ---------------------------------------------------------------
+@server.route("/api/radar")
+def api_radar():
+    try:
+        cenario_id = request.args.get("cenarios", type=int)
+        #cenarios = request.args.get("cenarios", type=str)
+        circuito = request.args.get("circuito_id", type=str)
+        if not cenario_id or not circuito:
+            return jsonify({"erro": "Informe cenario_id e circuito"}), 400
+
+        #cenario_id = cenarios.split(',')[0]
+        query = f'''WITH cte AS
+                    (
+                        SELECT
+                            c.controle_id, c.nome, 
+                            CASE
+                                WHEN step <> LAG(step,1,0) OVER
+                                (
+                                    ORDER BY c.controle_id, nome, patamar
+                                )
+                                THEN 1
+                            END AS stepChanged        
+                        from capacitor c
+                        join analise a on a.cenario_id = c.cenario_id 
+                        where c.circuito='{circuito}' and c.cenario_id={cenario_id}
+                    )
+                    SELECT
+                        controle_id,
+                        COUNT(stepChanged) AS "stepChanged"                      
+                    FROM cte
+                    GROUP BY controle_id
+                    ORDER BY controle_id
+                '''
+
+        resultado1 = pd.read_sql_query(sql=query, con=engine)
+        resultado1['controle_id'] = resultado1['controle_id'].astype('int64')
+        # normalizado no javascript
+        #resultado1['stepChanged'] = resultado1['stepChanged'] / resultado1['stepChanged'].max() * 100
+
+        query2 = f'''WITH dados AS (
+                        SELECT 
+                            a.controle,
+                            SUM(SQRT(SQUARE(p_losses) + SQUARE(q_losses))) AS perdas
+                        FROM circuito c
+                        JOIN analise a 
+                            ON a.cenario_id = c.cenario_id
+                           AND a.controle_id = c.controle_id
+                           AND a.circuito = c.circuito
+                        where c.circuito='{circuito}' and c.cenario_id={cenario_id}                         
+                        GROUP BY a.controle
+                    )
+                    SELECT 
+                        d.controle,
+                        a.controle_id,
+                        d.perdas
+                    FROM dados d
+                    JOIN analise a
+                        ON a.circuito='{circuito}' and a.cenario_id={cenario_id}     
+                        AND a.controle = d.controle
+                    ORDER BY d.perdas;
+                '''
+
+        resultado2 = pd.read_sql_query(sql=query2, con=engine)
+        resultado2['controle_id'] = resultado2['controle_id'].astype('int64')
+
+        query3 = f'''Select controle_id , count(*) barras from barra 
+                    where tipo=2 and circuito='{circuito}' and cenario_id={cenario_id} 
+                    and (vln_pu > 1.05 OR vln_pu < 0.93) 
+                    group by controle_id
+                '''
+        resultado3 = pd.read_sql_query(sql=query3, con=engine)
+        resultado3['controle_id'] = resultado3['controle_id'].astype('int64')
+
+        #res = pd.merge(resultado1, resultado2, on='controle_id', how='outer')
+
+        dfs = [resultado1, resultado2, resultado3]
+        dfs = [df.set_index('controle_id') for df in dfs]
+        # cant not run if index not unique
+        res = pd.concat(dfs, join='outer', axis=1).fillna(0)
+
+        return res.to_dict(orient='list')
+
+        # return jsonify({
+        #     "controle_id": [r.controle_id for r in resultado1],
+        #     "stepChanged": [r.stepChanged for r in resultado1],
+        #     "perdas": [float(r.perdas) for r in resultado2],
+        # })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 
 # ---------------------------------------------------------------
 # Fator de potência pela distância

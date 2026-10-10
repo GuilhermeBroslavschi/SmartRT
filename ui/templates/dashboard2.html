@@ -126,7 +126,7 @@
     </div>
     <div class="panel">
       <h2>Perdas Elétricas</h2>
-      <div class="sub">Perdas totais do circuito ao longo do dia (kW/kVAr)</div>
+      <div class="sub">Perdas ao longo do dia: <span id="myspan"> kW </span></div>
       <div id="plot-perdas" class="plot"></div>
     </div>
   </div>
@@ -296,7 +296,7 @@ async function carregarCircuitos() {
   const selUnico = document.getElementById('sel-cenario');
   const ctrlUnico = document.getElementById('sel-controle');
   const selMulti = document.getElementById('sel-cenarios-comp');
-  console.log(dados)
+  //console.log(dados)
   if (dados.erro || !dados.length) {
     sel.innerHTML = '<option value="">Nenhum circuito encontrado</option>';
     selUnico.innerHTML = '<option value="">Sem cenarios</option>';
@@ -324,7 +324,7 @@ async function carregarControlCap(cenarioId, circuitoId, controleId) {
   try {
     const r = await fetch(`/api/capacitores?cenario_id=${cenarioId}&circuito_id=${circuitoId}&controle_id=${controleId}`);
     const d = await r.json();
-    console.log(d)
+    //console.log(d)
     if (d.erro) throw new Error(d.erro);
     if (!d) {
       mostrarMensagem('plot-capacitores-step', 'Sem dados para este cenario/circuito.'); mostrarMensagem('plot-capacitores-step', 'Sem dados para este cenario/circuito.');
@@ -474,6 +474,15 @@ async function carregarControlCap(cenarioId, circuitoId, controleId) {
   }
 }
 
+
+function calcularAcumulado (array) {
+    let soma = 0;
+    let norm = 0;
+    const accum = array.map(valor => soma += valor);
+    const max = Math.max.apply(Math, accum);
+    return accum.map(valor => norm = (valor/max) * 100);
+};
+
 async function carregarPotenciaPerdas(cenarioId, circuitoId, controleId) {
   try {
     const r = await fetch(`/api/potencia-perdas?cenario_id=${cenarioId}&circuito_id=${circuitoId}&controle_id=${controleId}`);
@@ -483,19 +492,34 @@ async function carregarPotenciaPerdas(cenarioId, circuitoId, controleId) {
     if (!d) { mostrarMensagem('plot-potencia', 'Sem dados para este cenario/circuito.'); mostrarMensagem('plot-perdas', 'Sem dados para este cenario/circuito.'); return; }
 
     const dataHora = [];
+    const losses_perc = []
+    const losses_line_perc = []
+    const demanda_tri = []
     const max_patamar  = Math.max.apply(Math,d.patamar);
     //console.log (max_patamar);
     for (let i = 0; i < max_patamar+1; i++) {
       //console.log((60/((max_patamar+1) / 24) * 60))
       given_seconds = d.patamar[i] * (60 / ((max_patamar + 1) / 24) * 60);
-
-
+      demanda_tri[i] = (d.p1[i] + d.p2[i] + d.p3[i]);
+      losses_perc[i] = (d.p_losses[i] /demanda_tri[i]) * 100;
+      losses_line_perc[i] = (d.p_losses_line[i] /demanda_tri[i]) * 100;
       //new Date(SECONDS * 1000).toISOString().substring(14, 19)
       //console.log(timeString)
       //console.log(given_seconds)
       dataHora.push(new Date(given_seconds * 1000).toISOString().slice(11, 16))
       //console.log(dataHora[i])
     }
+
+    //console.log(losses_perc)
+    //console.log("losses_line_perc")
+    //console.log(losses_line_perc)
+    losses_accumulated  = calcularAcumulado(losses_perc);
+    let energy_losses = 0;
+    let demanda = 0;
+    d.p_losses.forEach((el) => energy_losses += el);
+    demanda_tri.forEach((el) => demanda += el);
+
+    document.getElementById("myspan").textContent=(energy_losses/(max_patamar+1)*24).toFixed(2) + " kW  " + (energy_losses/demanda*100).toFixed(2) + " %";
 
     Plotly.newPlot('plot-potencia', [
       { x: dataHora, y: d.p1, type: 'scatter', mode: 'lines', name: 'Potencia Ativa - Fase A (kW)', line: { color: CORES.ativa_1, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(79,209,197,0.08)' },
@@ -509,10 +533,14 @@ async function carregarPotenciaPerdas(cenarioId, circuitoId, controleId) {
 
 
     Plotly.newPlot('plot-perdas', [
-      { x: d.patamar, y: d.p_losses, type: 'scatter', mode: 'lines', name: 'Perda Ativa (kW)', line: { color: CORES.perdas_ativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
-      { x: d.patamar, y: d.q_losses, type: 'scatter', mode: 'lines', name: 'Perda Reativa (kVAr)', line: { color: CORES.perdas_reativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
+      //{ x: d.patamar, y: losses_perc, type: 'scatter', mode: 'lines', name: 'Perdas (%)', line: { color: CORES.perdas_ativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
+      //{ x: d.patamar, y: losses_line_perc, type: 'scatter', mode: 'lines', name: 'Perdas nas Linhas (%)', line: { color: CORES.perdas_reativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
+      //{ x: d.patamar, y: losses_accumulated, type: 'scatter', mode: 'lines', name: 'Perdas (%)', line: { color: CORES.perdas_ativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
 
-    ], { ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Hora',  nticks: 24 }, yaxis: { ...layoutBase.yaxis, title: 'kW / kVAr' } }, plotConfig);
+      { x: d.patamar, y: d.p_losses, type: 'scatter', mode: 'lines', name: 'Perda Ativa (kW)', line: { color: CORES.perdas_ativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
+      //{ x: d.patamar, y: d.q_losses, type: 'scatter', mode: 'lines', name: 'Perda Reativa (kVAr)', line: { color: CORES.perdas_reativa, width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(239,106,106,0.10)' },
+
+    ], { ...layoutBase, xaxis: { ...layoutBase.xaxis, title: 'Hora',  nticks: 24 }, yaxis: { ...layoutBase.yaxis,  title: 'kW' } }, plotConfig);
 
 
     Plotly.newPlot('plot-fator_potencia', [
@@ -781,40 +809,182 @@ async function carregarRadar(circuitoId, cenarioIds) {
   try {
     if (!cenarioIds.length) { mostrarMensagem('plot-radar', 'Selecione ao menos um cenario para comparar.'); document.getElementById('tabela-radar').innerHTML = ''; return; }
 
-    const r = await fetch(`/api/comparacao-cenarios?circuito_id=${circuitoId}&cenarios=${cenarioIds.join(',')}`);
+    //const r = await fetch(`/api/radar?circuito_id=${circuitoId}&cenarios=${cenarioIds.join(',')}`);
+    const r = await fetch(`/api/radar?circuito_id=${circuitoId}&cenarios=${cenarioIds}`);
     const d = await r.json();
+    console.log('radar...')
+    console.log(d)
     if (d.erro) throw new Error(d.erro);
-    if (!d.series.length) { mostrarMensagem('plot-radar', 'Sem dados para os cenarios selecionados.'); return; }
+    if (!d) { mostrarMensagem('plot-radar', 'Sem dados para os cenarios selecionados.'); return; }
+
+    const minstepChanged = Math.min(...d.stepChanged);
+    const maxstepChanged = Math.max(...d.stepChanged);
+    const stepChangedNormalizadas = d.stepChanged.map(v =>
+        maxstepChanged === minstepChanged
+            ? 0
+            : ((v) / (maxstepChanged)) * 100
+    );
+
+    const minPerdas = Math.min(...d.perdas);
+    const maxPerdas = Math.max(...d.perdas);
+    const perdasNormalizadas = d.perdas.map(v =>
+        maxPerdas === minPerdas
+            ? 0
+            : ((maxPerdas - v) / (maxPerdas - minPerdas)) * 100       // invertido ( maxPerdas - v) para indicar quanto menor melhor
+    );
+
+    const minBarras = Math.min(...d.barras);
+    const maxBarras = Math.max(...d.barras);
+    const barrasNormalizadas = d.barras.map(v =>
+        maxBarras === minBarras
+            ? 0
+            : ((maxBarras - v) / (maxBarras - minBarras )) * 100       // invertido ( maxPerdas - v) para indicar quanto menor melhor
+    );
+
 
     const paleta = ['#4fd1c5', '#f0a84e', '#ef6a6a', '#7aa7ff', '#c98bf0', '#9acd6a'];
-    const traces = d.series.map((s, i) => ({
-      type: 'scatterpolar',
-      r: [...s.valores_normalizados, s.valores_normalizados[0]],
-      theta: [...d.metricas, d.metricas[0]],
-      fill: 'toself',
-      name: s.cenario,
-      line: { color: paleta[i % paleta.length] },
-      opacity: 0.75,
-    }));
+    const traces = [
+        {
+            type: 'scatterpolar',
+            r: [...stepChangedNormalizadas, stepChangedNormalizadas[0]],
+            theta: [...d.controle, d.controle[0]],
+            fill: 'toself',
+            name: 'Step Changed',
+            line: {
+                color: paleta[0]
+            },
+            opacity: 0.75
+        },
+        {
+            type: 'scatterpolar',
+            r: [...perdasNormalizadas, perdasNormalizadas[0]],
+            theta: [...d.controle, d.controle[0]],
+            fill: 'toself',
+            name: 'Perdas',
+            line: {
+                color: paleta[1]
+            },
+            opacity: 0.75
+        },
+        {
+            type: 'scatterpolar',
+            r: [...barrasNormalizadas, barrasNormalizadas[0]],
+            theta: [...d.controle, d.controle[0]],
+            fill: 'toself',
+            name: 'Barras',
+            line: {
+                color: paleta[2]
+            },
+            opacity: 0.75
+        }
+    ];
+
+    console.log(traces)
 
     Plotly.newPlot('plot-radar', traces, {
       ...layoutBase,
       polar: {
         bgcolor: 'transparent',
-        radialaxis: { visible: true, range: [0, 1], gridcolor: '#2a3542', color: '#8b98a5' },
-        angularaxis: { gridcolor: '#2a3542', color: '#e6edf3' },
+        radialaxis: { visible: true, gridcolor: '#2a3542', color: '#8b98a5' },
+        angularaxis: {type: 'category', categoryorder: 'array', categoryarray: d.controle, gridcolor: '#2a3542',
+                color: '#e6edf3'
+            },
       },
       showlegend: true,
     }, plotConfig);
 
     const tabela = document.getElementById('tabela-radar');
-    let html = '<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; padding:6px; color:#8b98a5; border-bottom:1px solid #2a3542;">Metrica</th>';
-    d.series.forEach(s => { html += `<th style="text-align:right; padding:6px; color:#8b98a5; border-bottom:1px solid #2a3542;">${s.cenario}</th>`; });
-    html += '</tr></thead><tbody>';
-    d.metricas.forEach((m, i) => {
-      html += `<tr><td style="padding:6px; border-bottom:1px solid #2a3542;">${m}</td>`;
-      d.series.forEach(s => { html += `<td style="text-align:right; padding:6px; border-bottom:1px solid #2a3542; font-family:'IBM Plex Mono', monospace;">${s.valores[i].toLocaleString('pt-BR', { maximumFractionDigits: 3 })}</td>`; });
-      html += '</tr>';
+    let html = `
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="
+                        text-align:left;
+                        padding:6px;
+                        color:#8b98a5;
+                        border-bottom:1px solid #2a3542;
+                    ">
+                        Controle
+                    </th>
+
+                    <th style="
+                        text-align:right;
+                        padding:6px;
+                        color:#8b98a5;
+                        border-bottom:1px solid #2a3542;
+                    ">
+                        Step Changed
+                    </th>
+
+                    <th style="
+                        text-align:right;
+                        padding:6px;
+                        color:#8b98a5;
+                        border-bottom:1px solid #2a3542;
+                    ">
+                        Perdas
+                    </th>
+
+                    <th style="
+                        text-align:right;
+                        padding:6px;
+                        color:#8b98a5;
+                        border-bottom:1px solid #2a3542;
+                    ">
+                        Barras
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+    `;
+    d.controle.forEach((controle, i) => {
+        const stepChanged = Number(d.stepChanged[i]);
+        const perdas = Number(d.perdas[i]);
+        const barras = Number(d.barras[i]);
+        html += `
+            <tr>
+                <td style="
+                    padding:6px;
+                    border-bottom:1px solid #2a3542;
+                ">
+                    ${controle}
+                </td>
+
+                <td style="
+                    text-align:right;
+                    padding:6px;
+                    border-bottom:1px solid #2a3542;
+                    font-family:'IBM Plex Mono', monospace;
+                ">
+                    ${stepChanged.toLocaleString('pt-BR', {
+                        maximumFractionDigits: 3
+                    })}
+                </td>
+
+                <td style="
+                    text-align:right;
+                    padding:6px;
+                    border-bottom:1px solid #2a3542;
+                    font-family:'IBM Plex Mono', monospace;
+                ">
+                    ${perdas.toLocaleString('pt-BR', {
+                        maximumFractionDigits: 3
+                    })}
+                </td>
+
+                <td style="
+                    text-align:right;
+                    padding:6px;
+                    border-bottom:1px solid #2a3542;
+                    font-family:'IBM Plex Mono', monospace;
+                ">
+                    ${barras.toLocaleString('pt-BR', {
+                        maximumFractionDigits: 3
+                    })}
+                </td>
+            </tr>
+        `;
     });
     html += '</tbody></table>';
     tabela.innerHTML = html;
@@ -830,6 +1000,7 @@ async function atualizarTudo() {
   const controleId = document.getElementById('sel-controle').value;
   const cenariosComp = Array.from(document.getElementById('sel-cenarios-comp').selectedOptions).map(o => o.value);
   const sliderFp = document.getElementById('slider-fp-distancia');
+  //console.log(cenariosComp)
   //console.log(circuitoId)
   //console.log(cenarioId)
   if (!circuitoId || !cenarioId) return;
@@ -841,7 +1012,7 @@ async function atualizarTudo() {
   carregarFpDistancia(cenarioId, circuitoId, sliderFp.value, controleId);
 
   carregarViolacoes(cenarioId, circuitoId, controleId);
-  carregarRadar(circuitoId, cenariosComp, controleId);
+  carregarRadar(circuitoId, cenarioId);
 }
 
 document.getElementById('sel-circuito').addEventListener('change', async (e) => {

@@ -46,6 +46,8 @@ circuito_table = Table('circuito', metadata,
                        Column('q3', Float),
                        Column('p_losses', Float),
                        Column('q_losses', Float),
+                       Column('p_losses_line', Float),
+                       Column('q_losses_line', Float),
                        )
 barra_table = Table('barra', metadata,
                     Column('cenario_id', Integer),

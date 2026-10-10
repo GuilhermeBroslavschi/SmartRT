@@ -14,7 +14,7 @@ data_smartCAP:
 #    - 'AER04'
 #    - 'AER05'
 #    - 'AGU07'
-    - 'AGU08'
+#    - 'AGU08'
 #    - 'AGU09'
 #    - 'AGU10'
 #    - 'MBA13'
@@ -27,7 +27,7 @@ data_smartCAP:
 #    - 'MIR22'
 #    - 'MIR23'
 #    - 'MIR24'
-#    - 'TAQ03'
+    - 'TAQ03'
 #    - 'TAQ04'
 #    - 'TAQ05'
 #    - 'TAQ06'
@@ -46,52 +46,64 @@ data_smartCAP:
 #    - '2,Caso_tensao' #391 RMTQ1302
 #    - '3,Casokvar1' #63 TAQ03
 #    - '4,Casokvar2' #63 TAQ03
-    - '5,CasoSemGD'
-    - '6,CasoComGD'
-    - '7,CasoCarga'
-    - '8,CasoNovoBC'
-    - '9,CasoReparametrizacao'
-    - '10,CasoSemGDFalhaCAP272A'
-    - '11,CasoSemGDFalhaCAP272B'
-    - '12,CasoSemGDFalhaCAP272C'
-    - '13,CasoSemGDFalhaCAP618A'
-    - '14,CasoSemGDFalhaCAP618B'
-    - '15,CasoSemGDFalhaCAP618C'
-    - '16,CasoComGDFalhaCAP272A'
-    - '17,CasoComGDFalhaCAP272B'
-    - '18,CasoComGDFalhaCAP272C'
-    - '19,CasoComGDFalhaCAP618A'
-    - '20,CasoComGDFalhaCAP618B'
-    - '21,CasoComGDFalhaCAP618C'
-    - '22,CasoCargaFalhaCAP272A'
-    - '23,CasoCargaFalhaCAP272B'
-    - '24,CasoCargaFalhaCAP272C'
-    - '25,CasoCargaFalhaCAP618A'
-    - '26,CasoCargaFalhaCAP618B'
-    - '27,CasoCargaFalhaCAP618C'
-    - '28,CasoNovoBCFalhaCAP272A'
-    - '29,CasoNovoBCFalhaCAP272B'
-    - '30,CasoNovoBCFalhaCAP272C'
-    - '31,CasoNovoBCFalhaCAP618A'
-    - '32,CasoNovoBCFalhaCAP618B'
-    - '33,CasoNovoBCFalhaCAP618C'
-    - '34,CasoNovoBCFalhaCAP457A'
-    - '35,CasoNovoBCFalhaCAP457B'
-    - '36,CasoNovoBCFalhaCAP457C'
-    - '37,CasoReparametFalhaCAP272A'
-    - '38,CasoReparametFalhaCAP272B'
-    - '39,CasoReparametFalhaCAP272C'
-    - '40,CasoReparametFalhaCAP618A'
-    - '41,CasoReparametFalhaCAP618B'
-    - '42,CasoReparametFalhaCAP618C'
-    - '43,CasoReparametFalhaCAP457A'
-    - '44,CasoReparametFalhaCAP457B'
-    - '45,CasoReparametFalhaCAP457C'
+#    - '5,CasoSemGD' #63 AGU08
+#    - '6,CasoComGD' #63 AGU08
+#    - '7,CasoCarga' #63 AGU08
+#    - '8,CasoNovoBC' #63 AGU08
+#    - '9,CasoReparametrizacao' #63 AGU08
+#    - '10,CasoSemGDFalhaCAP272A' #63 AGU08
+#    - '11,CasoSemGDFalhaCAP272B' #63 AGU08
+#    - '12,CasoSemGDFalhaCAP272C' #63 AGU08
+#    - '13,CasoSemGDFalhaCAP618A' #63 AGU08
+#    - '14,CasoSemGDFalhaCAP618B' #63 AGU08
+#    - '15,CasoSemGDFalhaCAP618C' #63 AGU08
+#    - '16,CasoComGDFalhaCAP272A' #63 AGU08
+#    - '17,CasoComGDFalhaCAP272B' #63 AGU08
+#    - '18,CasoComGDFalhaCAP272C' #63 AGU08
+#    - '19,CasoComGDFalhaCAP618A' #63 AGU08
+#    - '20,CasoComGDFalhaCAP618B' #63 AGU08
+#    - '21,CasoComGDFalhaCAP618C' #63 AGU08
+#    - '22,CasoCargaFalhaCAP272A' #63 AGU08
+#    - '23,CasoCargaFalhaCAP272B' #63 AGU08
+#    - '24,CasoCargaFalhaCAP272C' #63 AGU08
+#    - '25,CasoCargaFalhaCAP618A' #63 AGU08
+#    - '26,CasoCargaFalhaCAP618B' #63 AGU08
+#    - '27,CasoCargaFalhaCAP618C' #63 AGU08
+#    - '28,CasoNovoBCFalhaCAP272A' #63 AGU08
+#    - '29,CasoNovoBCFalhaCAP272B' #63 AGU08
+#    - '30,CasoNovoBCFalhaCAP272C' #63 AGU08
+#    - '31,CasoNovoBCFalhaCAP618A' #63 AGU08
+#    - '32,CasoNovoBCFalhaCAP618B' #63 AGU08
+#    - '33,CasoNovoBCFalhaCAP618C' #63 AGU08
+#    - '34,CasoNovoBCFalhaCAP457A' #63 AGU08
+#    - '35,CasoNovoBCFalhaCAP457B' #63 AGU08
+#    - '36,CasoNovoBCFalhaCAP457C' #63 AGU08
+#    - '37,CasoReparametFalhaCAP272A' #63 AGU08
+#    - '38,CasoReparametFalhaCAP272B' #63 AGU08
+#    - '39,CasoReparametFalhaCAP272C' #63 AGU08
+#    - '40,CasoReparametFalhaCAP618A' #63 AGU08
+#    - '41,CasoReparametFalhaCAP618B' #63 AGU08
+#    - '42,CasoReparametFalhaCAP618C' #63 AGU08
+#    - '43,CasoReparametFalhaCAP457A' #63 AGU08
+#    - '44,CasoReparametFalhaCAP457B' #63 AGU08
+#    - '45,CasoReparametFalhaCAP457C' #63 AGU08
+#    - '46,FalhaCAP825' #63 TAQ03
+#    - '47,FalhaCAP825A' #63 TAQ03
+#    - '48,FalhaCAP825B' #63 TAQ03
+#    - '49,FalhaCAP825C' #63 TAQ03
+    - '50,CargaFalhaCAP618' #63 AGU08
+    - '51,CargaFalhaCAP618A' #63 AGU08
+    - '52,CargaFalhaCAP618B' #63 AGU08
+    - '53,CargaFalhaCAP618C' #63 AGU08
+    - '54,GDFalhaCAP618' #63 AGU08
+    - '55,GDFalhaCAP618A' #63 AGU08
+    - '56,GDFalhaCAP618B' #63 AGU08
+    - '57,GDFalhaCAP618C' #63 AGU08
   controle:
 #    - '0,Corrente'
-    - '1,Tensao'
+#    - '1,Tensao'
     - '2,kvar'
-    - '3,Tempo'
+#    - '3,Tempo'
 #    - '4,FP'
     - '5,Fixo'
     - '6,Desligado'
@@ -100,5 +112,5 @@ data_smartCAP:
   num_patamares: 24
   patamar_ini: 0
   patamar_fim: 24
-  hour: 8 #Hora da falha do BC - Apenas para os cenários de falhas
+  hour: 0 #Hora da falha do BC - Apenas para os cenários de falhas
   multiprocess: False
